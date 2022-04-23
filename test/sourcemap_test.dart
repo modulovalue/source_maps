@@ -2,15 +2,16 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:source_maps2/json_to_sourcemap.dart';
+import 'package:source_maps2/source_span_textbuffer.dart';
 import 'package:source_maps2/sourcemap.dart';
 import 'package:source_maps2/sourcemap_builder.dart';
 import 'package:source_maps2/sourcemap_span_for.dart';
 import 'package:source_maps2/sourcemap_to_json.dart';
 import 'package:source_maps2/vlq.dart';
-import 'package:source_span/source_span.dart';
 import 'package:test/test.dart';
 
 void main() {
+  const textbuffer = SourcemapTextbufferSourcespanImpl();
   group("end-to-end", () {
     test('end-to-end setup', () {
       expect(inputVar1.text, 'longVar1');
@@ -41,10 +42,10 @@ void main() {
         ),
       );
       final mapping = sourcemap_from_json(map);
-      check(outputVar1, mapping, inputVar1, false);
-      check(outputVar2, mapping, inputVar2, false);
-      check(outputFunction, mapping, inputFunction, false);
-      check(outputExpr, mapping, inputExpr, false);
+      check(outputVar1, mapping, inputVar1, false, textbuffer);
+      check(outputVar2, mapping, inputVar2, false, textbuffer);
+      check(outputFunction, mapping, inputFunction, false, textbuffer);
+      check(outputExpr, mapping, inputExpr, false, textbuffer);
     });
     test('build + parse - no symbols', () {
       final map = sourcemap_single_to_json(
@@ -59,10 +60,10 @@ void main() {
         ),
       );
       final mapping = sourcemap_from_json(map);
-      check(outputVar1NoSymbol, mapping, inputVar1NoSymbol, false);
-      check(outputVar2NoSymbol, mapping, inputVar2NoSymbol, false);
-      check(outputFunctionNoSymbol, mapping, inputFunctionNoSymbol, false);
-      check(outputExpr, mapping, inputExpr, false);
+      check(outputVar1NoSymbol, mapping, inputVar1NoSymbol, false, textbuffer);
+      check(outputVar2NoSymbol, mapping, inputVar2NoSymbol, false, textbuffer);
+      check(outputFunctionNoSymbol, mapping, inputFunctionNoSymbol, false, textbuffer);
+      check(outputExpr, mapping, inputExpr, false, textbuffer);
     });
     test('build + parse, repeated entries', () {
       final map = sourcemap_single_to_json(
@@ -81,10 +82,10 @@ void main() {
         ),
       );
       final mapping = sourcemap_from_json(map);
-      check(outputVar1, mapping, inputVar1, false);
-      check(outputVar2, mapping, inputVar2, false);
-      check(outputFunction, mapping, inputFunction, false);
-      check(outputExpr, mapping, inputExpr, false);
+      check(outputVar1, mapping, inputVar1, false, textbuffer);
+      check(outputVar2, mapping, inputVar2, false, textbuffer);
+      check(outputFunction, mapping, inputFunction, false, textbuffer);
+      check(outputExpr, mapping, inputExpr, false, textbuffer);
     });
     test('build + parse - no symbols, repeated entries', () {
       final map = sourcemap_single_to_json(
@@ -102,10 +103,10 @@ void main() {
         ),
       );
       final mapping = sourcemap_from_json(map);
-      check(outputVar1NoSymbol, mapping, inputVar1NoSymbol, false);
-      check(outputVar2NoSymbol, mapping, inputVar2NoSymbol, false);
-      check(outputFunctionNoSymbol, mapping, inputFunctionNoSymbol, false);
-      check(outputExpr, mapping, inputExpr, false);
+      check(outputVar1NoSymbol, mapping, inputVar1NoSymbol, false, textbuffer);
+      check(outputVar2NoSymbol, mapping, inputVar2NoSymbol, false, textbuffer);
+      check(outputFunctionNoSymbol, mapping, inputFunctionNoSymbol, false, textbuffer);
+      check(outputExpr, mapping, inputExpr, false, textbuffer);
     });
     test('build + parse with file', () {
       final json = jsonEncode(
@@ -124,10 +125,10 @@ void main() {
       final mapping = sourcemap_from_json(
         jsonDecode(json),
       );
-      check(outputVar1, mapping, inputVar1, true);
-      check(outputVar2, mapping, inputVar2, true);
-      check(outputFunction, mapping, inputFunction, true);
-      check(outputExpr, mapping, inputExpr, true);
+      check(outputVar1, mapping, inputVar1, true, textbuffer);
+      check(outputVar2, mapping, inputVar2, true, textbuffer);
+      check(outputFunction, mapping, inputFunction, true, textbuffer);
+      check(outputExpr, mapping, inputExpr, true, textbuffer);
     });
   });
   group("parser test", () {
@@ -201,26 +202,26 @@ void main() {
 
     test('parse', () {
       final mapping = sourcemap_from_json(expectedMap);
-      check(outputVar1, mapping, inputVar1, false);
-      check(outputVar2, mapping, inputVar2, false);
-      check(outputFunction, mapping, inputFunction, false);
-      check(outputExpr, mapping, inputExpr, false);
+      check(outputVar1, mapping, inputVar1, false, textbuffer);
+      check(outputVar2, mapping, inputVar2, false, textbuffer);
+      check(outputFunction, mapping, inputFunction, false, textbuffer);
+      check(outputExpr, mapping, inputExpr, false, textbuffer);
     });
     test('parse + json', () {
       final mapping = sourcemap_from_json(
         jsonDecode(jsonEncode(expectedMap)),
       );
-      check(outputVar1, mapping, inputVar1, false);
-      check(outputVar2, mapping, inputVar2, false);
-      check(outputFunction, mapping, inputFunction, false);
-      check(outputExpr, mapping, inputExpr, false);
+      check(outputVar1, mapping, inputVar1, false, textbuffer);
+      check(outputVar2, mapping, inputVar2, false, textbuffer);
+      check(outputFunction, mapping, inputFunction, false, textbuffer);
+      check(outputExpr, mapping, inputExpr, false, textbuffer);
     });
     test('parse with file', () {
       final mapping = sourcemap_from_json(expectedMap);
-      check(outputVar1, mapping, inputVar1, true);
-      check(outputVar2, mapping, inputVar2, true);
-      check(outputFunction, mapping, inputFunction, true);
-      check(outputExpr, mapping, inputExpr, true);
+      check(outputVar1, mapping, inputVar1, true, textbuffer);
+      check(outputVar2, mapping, inputVar2, true, textbuffer);
+      check(outputFunction, mapping, inputFunction, true, textbuffer);
+      check(outputExpr, mapping, inputExpr, true, textbuffer);
     });
     test('parse with no source location', () {
       final map = sourcemap_from_json(jsonDecode(jsonEncode(_mapWithNoSourceLocation))) as SourcemapSingle;
@@ -274,22 +275,24 @@ void main() {
       final mapping = sourcemap_from_json(inputMap) as SourcemapSingle;
       expect(
         span_for_sourcemap(
+          textbuffer: textbuffer,
           sourcemap: mapping,
           line: 0,
           column: 0,
           uri: null,
           files: null,
-        )?.sourceUrl,
+        )?.start.sourceUrl,
         Uri.parse('/pkg/input.dart'),
       );
       expect(
         span_for_sourcemap(
+          textbuffer: textbuffer,
           sourcemap: mapping,
           line: 0,
           column: 0,
           uri: 'ignored.dart',
           files: null,
-        )?.sourceUrl,
+        )?.start.sourceUrl,
         Uri.parse('/pkg/input.dart'),
       );
       const newSourceRoot = '/new/';
@@ -311,12 +314,13 @@ void main() {
       );
       expect(
         span_for_sourcemap(
+          textbuffer: textbuffer,
           sourcemap: mapping,
           line: 0,
           column: 0,
           uri: null,
           files: null,
-        )?.sourceUrl,
+        )?.start.sourceUrl,
         Uri.parse('file:///path/to/pkg/input.dart'),
       );
     });
@@ -328,129 +332,142 @@ void main() {
       test('simple', () {
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: Uri.file('/path/to/output.dart').toString(),
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input1.dart'),
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: Uri.file('/path/to/output2.dart').toString(),
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input2.dart'),
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: Uri.file('/path/to/3/output.dart').toString(),
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input3.dart'),
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: 'file:///path/to/output.dart',
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input1.dart'),
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: 'file:///path/to/output2.dart',
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input2.dart'),
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: 'file:///path/to/3/output.dart',
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input3.dart'),
         );
       });
       test('package uris', () {
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: Uri.parse('package:1/output.dart').toString(),
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input1.dart'),
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: Uri.parse('package:2/output2.dart').toString(),
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input2.dart'),
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: Uri.parse('package:3/output.dart').toString(),
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input3.dart'),
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: 'package:1/output.dart',
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input1.dart'),
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: 'package:2/output2.dart',
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input2.dart'),
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: 'package:3/output.dart',
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input3.dart'),
         );
       });
       test('unmapped path', () {
         var span = span_for_sourcemap(
+          textbuffer: textbuffer,
           sourcemap: mapping,
           line: 0,
           column: 0,
@@ -458,7 +475,7 @@ void main() {
           files: null,
         )!;
         expect(
-          span.sourceUrl,
+          span.start.sourceUrl,
           Uri.parse('unmapped_output.dart'),
         );
         expect(
@@ -470,6 +487,7 @@ void main() {
           equals(0),
         );
         span = span_for_sourcemap(
+          textbuffer: textbuffer,
           sourcemap: mapping,
           line: 10,
           column: 5,
@@ -477,7 +495,7 @@ void main() {
           files: null,
         )!;
         expect(
-          span.sourceUrl,
+          span.start.sourceUrl,
           Uri.parse('unmapped_output.dart'),
         );
         expect(
@@ -492,6 +510,7 @@ void main() {
       test('missing path', () {
         expect(
           () => span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
@@ -504,32 +523,35 @@ void main() {
       test('incomplete paths', () {
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: 'output.dart',
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input1.dart'),
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: 'output2.dart',
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input2.dart'),
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: '3/output.dart',
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input3.dart'),
         );
       });
@@ -540,32 +562,35 @@ void main() {
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: 'output.dart',
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input1.dart'),
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: 'output2.dart',
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input2.dart'),
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: '3/output.dart',
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input3.dart'),
         );
       });
@@ -579,12 +604,13 @@ void main() {
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: 'output.dart',
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input1.dart'),
         );
         expect(mapping.containsMapping('output2.dart'), isFalse);
@@ -597,12 +623,13 @@ void main() {
         expect(mapping.containsMapping('output2.dart'), isTrue);
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: 'output2.dart',
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input2.dart'),
         );
         expect(mapping.containsMapping('3/output.dart'), isFalse);
@@ -615,12 +642,13 @@ void main() {
         expect(mapping.containsMapping('3/output.dart'), isTrue);
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: '3/output.dart',
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input3.dart'),
         );
       });
@@ -630,62 +658,68 @@ void main() {
       test('different paths', () {
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: Uri.parse('http://localhost/output.dart').toString(),
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input1.dart'),
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: Uri.parse('http://localhost/output2.dart').toString(),
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input2.dart'),
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: Uri.parse('http://localhost/3/output.dart').toString(),
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input3.dart'),
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: 'http://localhost/output.dart',
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input1.dart'),
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: 'http://localhost/output2.dart',
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input2.dart'),
         );
         expect(
           span_for_sourcemap(
+            textbuffer: textbuffer,
             sourcemap: mapping,
             line: 0,
             column: 0,
             uri: 'http://localhost/3/output.dart',
             files: null,
-          )?.sourceUrl,
+          )?.start.sourceUrl,
           Uri.parse('file:///path/to/pkg/input3.dart'),
         );
       });
@@ -864,55 +898,6 @@ void main() {
       );
     });
   });
-  group('binary search', () {
-    int Function(
-      bool Function(T),
-    ) _linearSearch<T>(
-      final List<T> list,
-    ) =>
-        (final predicate) {
-          if (list.isEmpty) {
-            return -1;
-          } else {
-            for (var i = 0; i < list.length; i++) {
-              if (predicate(list[i])) {
-                return i;
-              }
-            }
-            return list.length;
-          }
-        };
-
-    test('empty', () {
-      expect(binary_search(<int>[])((final x) => true), -1);
-    });
-    test('single element', () {
-      expect(binary_search([1])((final x) => true), 0);
-      expect(binary_search([1])((final x) => false), 1);
-    });
-    test('no matches', () {
-      final list = [1, 2, 3, 4, 5, 6, 7];
-      expect(binary_search(list)((final x) => false), list.length);
-    });
-    test('all match', () {
-      final list = [1, 2, 3, 4, 5, 6, 7];
-      expect(binary_search(list)((final x) => true), 0);
-    });
-    test('compare with linear search', () {
-      for (var size = 0; size < 100; size++) {
-        final list = <int>[];
-        for (var i = 0; i < size; i++) {
-          list.add(i);
-        }
-        for (var pos = 0; pos <= size; pos++) {
-          expect(
-            binary_search<int>(list)((final x) => x >= pos),
-            _linearSearch(list)((final x) => x >= pos),
-          );
-        }
-      }
-    });
-  });
   group("vlq", () {
     void _checkEncodeDecode(
       final int value,
@@ -1010,31 +995,31 @@ SourcemapSpan _ispan(
   final int end, [
   final bool isIdentifier = false,
 ]) {
-  final span = SourceFile.fromString(
-    input.content,
-    url: input.url,
-  ).span(
-    start,
-    end,
-  );
   return SourcemapSpanImpl(
-    start: SourcemapLocationImpl(
+    start: const SourcemapTextbufferSourcespanImpl().calculate_location(
+      file: input,
       offset: start,
-      line: span.start.line,
-      column: span.start.column,
-      sourceUrl: input.url,
-      file: input,
+      make: (final c, final r) => SourcemapLocationImpl(
+        offset: start,
+        column: c,
+        line: r,
+        sourceUrl: input.url,
+        file: input,
+      ),
     ),
-    end: SourcemapLocationImpl(
-      offset: end,
-      line: span.end.line,
-      column: span.end.column,
-      sourceUrl: input.url,
+    end: const SourcemapTextbufferSourcespanImpl().calculate_location(
       file: input,
+      offset: end,
+      make: (final c, final r) => SourcemapLocationImpl(
+        offset: end,
+        column: c,
+        line: r,
+        sourceUrl: input.url,
+        file: input,
+      ),
     ),
     text: input.content.substring(start, end),
     is_identifier: isIdentifier,
-    sourceUrl: input.url,
   );
 }
 
@@ -1063,30 +1048,30 @@ SourcemapSpan _ospan(
   final int end, [
   final bool isIdentifier = false,
 ]) {
-  final span = SourceFile.fromString(
-    output.content,
-    url: output.url,
-  ).span(
-    start,
-    end,
-  );
   return SourcemapSpanImpl(
-    start: SourcemapLocationImpl(
+    start: const SourcemapTextbufferSourcespanImpl().calculate_location(
+      file: output,
       offset: start,
-      line: span.start.line,
-      column: span.start.column,
-      sourceUrl: output.url,
-      file: output,
+      make: (final c, final r) => SourcemapLocationImpl(
+        offset: start,
+        line: r,
+        sourceUrl: output.url,
+        file: output,
+        column: c,
+      ),
     ),
-    end: SourcemapLocationImpl(
-      offset: end,
-      line: span.end.line,
-      column: span.end.column,
-      sourceUrl: output.url,
+    end: const SourcemapTextbufferSourcespanImpl().calculate_location(
       file: output,
+      offset: end,
+      make: (final c, final r) => SourcemapLocationImpl(
+        offset: end,
+        column: c,
+        line: r,
+        sourceUrl: output.url,
+        file: output,
+      ),
     ),
     text: output.content.substring(start, end),
-    sourceUrl: output.url,
     is_identifier: isIdentifier,
   );
 }
@@ -1121,6 +1106,7 @@ void check(
   final Sourcemap mapping,
   final SourcemapSpan inputSpan,
   final bool realOffsets,
+  final SourcemapTextbuffer textbuffer,
 ) {
   final loc = outputSpan.start;
   final line = loc.line;
@@ -1135,6 +1121,7 @@ void check(
     }
   }();
   final span = span_for_sourcemap(
+    textbuffer: textbuffer,
     sourcemap: mapping,
     line: line,
     column: column,
@@ -1142,6 +1129,7 @@ void check(
     uri: null,
   )!;
   final span2 = span_for_sourcemap(
+    textbuffer: textbuffer,
     sourcemap: mapping,
     line: loc.line,
     column: loc.column,
@@ -1158,7 +1146,7 @@ void check(
   // Mapping matches our input location (modulo using real offsets)
   expect(span.start.line, inputSpan.start.line);
   expect(span.start.column, inputSpan.start.column);
-  expect(span.sourceUrl, inputSpan.sourceUrl);
+  expect(span.start.sourceUrl, inputSpan.start.sourceUrl);
   expect(span.start.offset, realOffsets ? inputSpan.start.offset : 0);
   // Mapping includes the identifier, if any
   if (inputSpan.is_identifier) {

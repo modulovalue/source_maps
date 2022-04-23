@@ -15,8 +15,8 @@ abstract class SourcemapMultisection implements Sourcemap {
   /// For each section, the start column offset.
   List<int> get columnStart;
 
-  /// For each section, the actual source map information, which is not adjusted
-  /// for offsets.
+  /// For each section, the actual source map information,
+  /// which is not adjusted for offsets.
   List<Sourcemap> get maps;
 }
 
@@ -73,19 +73,13 @@ abstract class SourcemapSpan {
   bool get is_identifier;
 
   /// The start location of this span.
-  SourcemapLocationSmart get start;
+  SourcemapLocation get start;
 
   /// The end location of this span, exclusive.
-  SourcemapLocationSmart get end;
+  SourcemapLocation get end;
 
   /// The source text for this span.
   String get text;
-
-  /// The URL of the source (typically a file) of this span.
-  ///
-  /// This may be null, indicating that the source URL is unknown or
-  /// unavailable.
-  Uri? get sourceUrl;
 }
 
 /// A line entry read from a source map.
@@ -115,9 +109,7 @@ abstract class SourcemapLocation {
   Uri? get sourceUrl;
 
   SourcemapFile? get file;
-}
 
-abstract class SourcemapLocationSmart implements SourcemapLocation{
   int get line;
 
   int get column;
@@ -128,6 +120,30 @@ abstract class SourcemapFile {
   String get content;
 
   Uri? get url;
+}
+
+/// Contains ways to project from line/column to index.
+abstract class SourcemapTextbuffer {
+  /// Projects a line and column to an offset.
+  int calculate_index({
+    required final SourcemapFile file,
+    required final int line,
+    required final int column,
+  });
+
+  /// Projects an offset to a line and column.
+  R calculate_location<R>({
+    required final SourcemapFile file,
+    required final int offset,
+    required final R Function(int column, int line) make,
+  });
+
+  /// Find an entry for the given lines, line and column.
+  SourcemapTargetEntry? find({
+    required final List<SourcemapTargetLineEntry> lines,
+    required final int line,
+    required final int column,
+  });
 }
 
 class SourcemapMultisectionImpl implements SourcemapMultisection {
@@ -245,22 +261,19 @@ class SourcemapSingleImpl implements SourcemapSingle {
 
 class SourcemapSpanImpl implements SourcemapSpan {
   @override
-  final SourcemapLocationSmart end;
+  final SourcemapLocation end;
   @override
-  final SourcemapLocationSmart start;
+  final SourcemapLocation start;
   @override
   final String text;
   @override
   final bool is_identifier;
-  @override
-  final Uri? sourceUrl;
 
   const SourcemapSpanImpl({
     required final this.start,
     required final this.end,
     required final this.text,
     required final this.is_identifier,
-    required final this.sourceUrl,
   });
 }
 
@@ -297,7 +310,7 @@ class SourcemapTargetEntryImpl implements SourcemapTargetEntry {
   });
 }
 
-class SourcemapLocationImpl implements SourcemapLocationSmart {
+class SourcemapLocationImpl implements SourcemapLocation {
   @override
   final int offset;
   @override

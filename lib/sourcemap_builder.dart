@@ -14,8 +14,8 @@ abstract class SourcemapBuilder {
 
   /// Adds an entry mapping [target] to [source].
   void add_location(
-    final SourcemapLocationSmart source,
-    final SourcemapLocationSmart target,
+    final SourcemapLocation source,
+    final SourcemapLocation target,
     final String? identifier,
   );
 
@@ -28,10 +28,10 @@ abstract class SourcemapBuilder {
 /// An entry in the source map builder.
 abstract class SourcemapBuilderEntry {
   /// Span denoting the original location in the input source file
-  SourcemapLocationSmart get source;
+  SourcemapLocation get source;
 
   /// Span indicating the corresponding location in the target file.
-  SourcemapLocationSmart get target;
+  SourcemapLocation get target;
 
   /// An identifier name, when this location is the start of an identifier.
   String? get identifier_name;
@@ -83,8 +83,8 @@ class SourcemapBuilderImpl implements SourcemapBuilder {
 
   @override
   void add_location(
-    final SourcemapLocationSmart source,
-    final SourcemapLocationSmart target,
+    final SourcemapLocation source,
+    final SourcemapLocation target,
     final String? identifier,
   ) {
     _entries.add(
@@ -199,9 +199,9 @@ class SourcemapBuilderImpl implements SourcemapBuilder {
 
 class SourcemapBuilderEntryImpl implements SourcemapBuilderEntry {
   @override
-  final SourcemapLocationSmart source;
+  final SourcemapLocation source;
   @override
-  final SourcemapLocationSmart target;
+  final SourcemapLocation target;
   @override
   final String? identifier_name;
 
