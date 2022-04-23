@@ -1,4 +1,4 @@
-name: source_maps
+name: source_maps2
 version: 0.10.11-dev
 
 description: Library to programmatically manipulate source map files.
@@ -11,6 +11,5 @@ dependencies:
   source_span: ^1.8.0
 
 dev_dependencies:
-  lints: ^1.0.0
+  extra_pedantic: ^2.0.0
   test: ^1.16.0
-  term_glyph: ^1.2.0

@@ -2,99 +2,99 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-/// Contains the top-level function to parse source maps version 3.
-library source_maps.parser;
+import 'dart:math';
 
-import 'dart:convert';
-
+// TODO remove this dependency.
 import 'package:source_span/source_span.dart';
 
-import 'builder.dart' as builder;
-import 'src/source_map_span.dart';
-import 'src/utils.dart';
-import 'src/vlq.dart';
-
-/// Parses a source map directly from a json string.
-///
-/// [mapUrl], which may be either a [String] or a [Uri], indicates the URL of
-/// the source map file itself. If it's passed, any URLs in the source
-/// map will be interpreted as relative to this URL when generating spans.
-// TODO(sigmund): evaluate whether other maps should have the json parsed, or
-// the string represenation.
-// TODO(tjblasi): Ignore the first line of [jsonMap] if the JSON safety string
-// `)]}'` begins the string representation of the map.
-Mapping parse(String jsonMap,
-        {Map<String, Map>? otherMaps, /*String|Uri*/ Object? mapUrl}) =>
-    parseJson(jsonDecode(jsonMap), otherMaps: otherMaps, mapUrl: mapUrl);
-
-/// Parses a source map or source map bundle directly from a json string.
-///
-/// [mapUrl], which may be either a [String] or a [Uri], indicates the URL of
-/// the source map file itself. If it's passed, any URLs in the source
-/// map will be interpreted as relative to this URL when generating spans.
-Mapping parseExtended(String jsonMap,
-        {Map<String, Map>? otherMaps, /*String|Uri*/ Object? mapUrl}) =>
-    parseJsonExtended(jsonDecode(jsonMap),
-        otherMaps: otherMaps, mapUrl: mapUrl);
+import 'builder.dart';
+import 'source_map_span.dart';
 
 /// Parses a source map or source map bundle.
 ///
 /// [mapUrl], which may be either a [String] or a [Uri], indicates the URL of
 /// the source map file itself. If it's passed, any URLs in the source
 /// map will be interpreted as relative to this URL when generating spans.
-Mapping parseJsonExtended(/*List|Map*/ Object? json,
-    {Map<String, Map>? otherMaps, /*String|Uri*/ Object? mapUrl}) {
+// TODO(tjblasi): Ignore the first line of [jsonMap] if the JSON safety string `)]}'` begins the string representation of the map.
+Sourcemap parse_sourcemap(
+  final dynamic json, {
+  final Uri? mapUrl,
+}) {
   if (json is List) {
-    return MappingBundle.fromJson(json, mapUrl: mapUrl);
-  }
-  return parseJson(json as Map);
-}
-
-/// Parses a source map
-///
-/// [mapUrl], which may be either a [String] or a [Uri], indicates the URL of
-/// the source map file itself. If it's passed, any URLs in the source
-/// map will be interpreted as relative to this URL when generating spans.
-Mapping parseJson(Map map,
-    {Map<String, Map>? otherMaps, /*String|Uri*/ Object? mapUrl}) {
-  if (map['version'] != 3) {
-    throw ArgumentError('unexpected source map version: ${map["version"]}. '
-        'Only version 3 is supported.');
-  }
-
-  if (map.containsKey('sections')) {
-    if (map.containsKey('mappings') ||
-        map.containsKey('sources') ||
-        map.containsKey('names')) {
-      throw FormatException('map containing "sections" '
-          'cannot contain "mappings", "sources", or "names".');
+    return SourcemapBundle.fromJson(
+      json,
+      mapUrl: mapUrl,
+    );
+  } else if (json is Map<dynamic, dynamic>) {
+    final map = json;
+    if (map['version'] != 3) {
+      throw ArgumentError(
+        'unexpected source map version: ${map["version"]}. '
+        'Only version 3 is supported.',
+      );
+    } else {
+      if (map.containsKey('sections')) {
+        if (map.containsKey('mappings') || map.containsKey('sources') || map.containsKey('names')) {
+          throw const FormatException(
+            'map containing "sections" '
+            'cannot contain "mappings", "sources", or "names".',
+          );
+        } else {
+          return SourcemapMultisection.fromJson(
+            map['sections'] as List<dynamic>,
+            mapUrl: mapUrl,
+          );
+        }
+      } else {
+        return SourcemapSingle.fromJson(
+          map,
+          mapUrl: mapUrl,
+        );
+      }
     }
-    return MultiSectionMapping.fromJson(map['sections'], otherMaps,
-        mapUrl: mapUrl);
+  } else {
+    throw Exception("Invalid type. ${json.runtimeType}");
   }
-  return SingleMapping.fromJson(map, mapUrl: mapUrl);
 }
 
 /// A mapping parsed out of a source map.
-abstract class Mapping {
+abstract class Sourcemap {
   /// Returns the span associated with [line] and [column].
   ///
   /// [uri] is the optional location of the output file to find the span for
   /// to disambiguate cases where a mapping may have different mappings for
   /// different output files.
-  SourceMapSpan? spanFor(int line, int column,
-      {Map<String, SourceFile>? files, String? uri});
+  SourcemapSpan? span_for(
+    final int line,
+    final int column, {
+    final Map<String, SourceFile>? files,
+    final String? uri,
+  });
 
+  R match<R>({
+    required final R Function(SourcemapMultisection) multi,
+    required final R Function(SourcemapBundle) bundle,
+    required final R Function(SourcemapSingle) single,
+  });
+}
+
+extension MappingSpanForLocation on Sourcemap {
   /// Returns the span associated with [location].
-  SourceMapSpan? spanForLocation(SourceLocation location,
-      {Map<String, SourceFile>? files}) {
-    return spanFor(location.line, location.column,
-        uri: location.sourceUrl?.toString(), files: files);
+  SourcemapSpan? span_for_location(
+      final SourceLocation location, {
+        final Map<String, SourceFile>? files,
+      }) {
+    return span_for(
+      location.line,
+      location.column,
+      uri: location.sourceUrl?.toString(),
+      files: files,
+    );
   }
 }
 
 /// A meta-level map containing sections.
-class MultiSectionMapping extends Mapping {
+class SourcemapMultisection implements Sourcemap {
   /// For each section, the start line offset.
   final List<int> _lineStart = <int>[];
 
@@ -103,71 +103,94 @@ class MultiSectionMapping extends Mapping {
 
   /// For each section, the actual source map information, which is not adjusted
   /// for offsets.
-  final List<Mapping> _maps = <Mapping>[];
+  final List<Sourcemap> _maps = <Sourcemap>[];
 
   /// Creates a section mapping from json.
-  MultiSectionMapping.fromJson(List sections, Map<String, Map>? otherMaps,
-      {/*String|Uri*/ Object? mapUrl}) {
-    for (var section in sections) {
-      var offset = section['offset'];
-      if (offset == null) throw FormatException('section missing offset');
-
-      var line = section['offset']['line'];
-      if (line == null) throw FormatException('offset missing line');
-
-      var column = section['offset']['column'];
-      if (column == null) throw FormatException('offset missing column');
-
-      _lineStart.add(line);
-      _columnStart.add(column);
-
-      var url = section['url'];
-      var map = section['map'];
-
-      if (url != null && map != null) {
-        throw FormatException("section can't use both url and map entries");
-      } else if (url != null) {
-        var other = otherMaps?[url];
-        if (otherMaps == null || other == null) {
-          throw FormatException(
-              'section contains refers to $url, but no map was '
-              'given for it. Make sure a map is passed in "otherMaps"');
-        }
-        _maps.add(parseJson(other, otherMaps: otherMaps, mapUrl: url));
-      } else if (map != null) {
-        _maps.add(parseJson(map, otherMaps: otherMaps, mapUrl: mapUrl));
+  SourcemapMultisection.fromJson(
+    final List<dynamic> sections, {
+    final Uri? mapUrl,
+  }) {
+    for (final section in sections) {
+      final offset = (section as Map<String, dynamic>)['offset'] as int?;
+      if (offset == null) {
+        throw const FormatException('section missing offset');
       } else {
-        throw FormatException('section missing url or map');
+        final line = (section['offset'] as Map<String, dynamic>)['line'] as int?;
+        if (line == null) {
+          throw const FormatException('offset missing line');
+        } else {
+          final column = (section['offset'] as Map<String, dynamic>)['column'] as int?;
+          if (column == null) {
+            throw const FormatException('offset missing column');
+          } else {
+            _lineStart.add(line);
+            _columnStart.add(column);
+            final dynamic url = section['url'];
+            final dynamic map = section['map'];
+            if (url != null && map != null) {
+              throw const FormatException("section can't use both url and map entries");
+            } else if (map != null) {
+              _maps.add(
+                parse_sourcemap(
+                  map as Object,
+                  mapUrl: mapUrl,
+                ),
+              );
+            } else {
+              throw const FormatException(
+                'section missing url or map',
+              );
+            }
+          }
+        }
       }
     }
     if (_lineStart.isEmpty) {
-      throw FormatException('expected at least one section');
+      throw const FormatException(
+        'expected at least one section',
+      );
     }
   }
 
-  int _indexFor(int line, int column) {
-    for (var i = 0; i < _lineStart.length; i++) {
-      if (line < _lineStart[i]) return i - 1;
-      if (line == _lineStart[i] && column < _columnStart[i]) return i - 1;
+  int _indexFor(
+    final int line,
+    final int column,
+  ) {
+    for (int i = 0; i < _lineStart.length; i++) {
+      if (line < _lineStart[i]) {
+        return i - 1;
+      } else {
+        if (line == _lineStart[i] && column < _columnStart[i]) {
+          return i - 1;
+        } else {
+          // Continue.
+        }
+      }
     }
     return _lineStart.length - 1;
   }
 
   @override
-  SourceMapSpan? spanFor(int line, int column,
-      {Map<String, SourceFile>? files, String? uri}) {
+  SourcemapSpan? span_for(
+    final int line,
+    final int column, {
+    final Map<String, SourceFile>? files,
+    final String? uri,
+  }) {
     // TODO(jacobr): perhaps verify that targetUrl matches the actual uri
     // or at least ends in the same file name.
-    var index = _indexFor(line, column);
-    return _maps[index].spanFor(
-        line - _lineStart[index], column - _columnStart[index],
-        files: files);
+    final index = _indexFor(line, column);
+    return _maps[index].span_for(
+      line - _lineStart[index],
+      column - _columnStart[index],
+      files: files,
+    );
   }
 
   @override
   String toString() {
-    var buff = StringBuffer('$runtimeType : [');
-    for (var i = 0; i < _lineStart.length; i++) {
+    final buff = StringBuffer('$runtimeType : [');
+    for (int i = 0; i < _lineStart.length; i++) {
       buff
         ..write('(')
         ..write(_lineStart[i])
@@ -180,48 +203,69 @@ class MultiSectionMapping extends Mapping {
     buff.write(']');
     return buff.toString();
   }
+
+  @override
+  R match<R>({
+    required final R Function(SourcemapMultisection) multi,
+    required final R Function(SourcemapBundle) bundle,
+    required final R Function(SourcemapSingle) single,
+  }) =>
+      multi(this);
 }
 
-class MappingBundle extends Mapping {
-  final Map<String, SingleMapping> _mappings = {};
+class SourcemapBundle implements Sourcemap {
+  final Map<String, SourcemapSingle> _mappings = {};
 
-  MappingBundle();
+  SourcemapBundle();
 
-  MappingBundle.fromJson(List json, {/*String|Uri*/ Object? mapUrl}) {
-    for (var map in json) {
-      addMapping(parseJson(map, mapUrl: mapUrl) as SingleMapping);
+  SourcemapBundle.fromJson(
+    final List<dynamic> json, {
+    final Uri? mapUrl,
+  }) {
+    for (final map in json) {
+      addMapping(
+        parse_sourcemap(map as Object, mapUrl: mapUrl) as SourcemapSingle,
+      );
     }
   }
 
-  void addMapping(SingleMapping mapping) {
+  void addMapping(
+    final SourcemapSingle mapping,
+  ) {
     // TODO(jacobr): verify that targetUrl is valid uri instead of a windows
     // path.
     // TODO: Remove type arg https://github.com/dart-lang/sdk/issues/42227
-    var targetUrl = ArgumentError.checkNotNull<String>(
-        mapping.targetUrl, 'mapping.targetUrl');
+    final targetUrl = ArgumentError.checkNotNull<String>(mapping.targetUrl, 'mapping.targetUrl');
     _mappings[targetUrl] = mapping;
   }
 
   /// Encodes the Mapping mappings as a json map.
-  List toJson() => _mappings.values.map((v) => v.toJson()).toList();
+  List<dynamic> toJson() => _mappings.values.map((final v) => v.toJson()).toList();
 
   @override
   String toString() {
-    var buff = StringBuffer();
-    for (var map in _mappings.values) {
+    final buff = StringBuffer();
+    for (final map in _mappings.values) {
       buff.write(map.toString());
     }
     return buff.toString();
   }
 
-  bool containsMapping(String url) => _mappings.containsKey(url);
+  bool containsMapping(
+    final String url,
+  ) =>
+      _mappings.containsKey(url);
 
   @override
-  SourceMapSpan? spanFor(int line, int column,
-      {Map<String, SourceFile>? files, String? uri}) {
+  SourcemapSpan? span_for(
+    final int line,
+    final int column, {
+    final Map<String, SourceFile>? files,
+    String? uri,
+  }) {
     // TODO: Remove type arg https://github.com/dart-lang/sdk/issues/42227
+    // ignore: parameter_assignments
     uri = ArgumentError.checkNotNull<String>(uri, 'uri');
-
     // Find the longest suffix of the uri that matches the sourcemap
     // where the suffix starts after a path segment boundary.
     // We consider ":" and "/" as path segment boundaries so that
@@ -232,36 +276,50 @@ class MappingBundle extends Mapping {
     // not generate all of the path segment boundaries we want for "package:"
     // urls as "package:package_name" would be one path segment when we want
     // "package" and "package_name" to be sepearate path segments.
-
-    var onBoundary = true;
-    var separatorCodeUnits = ['/'.codeUnitAt(0), ':'.codeUnitAt(0)];
-    for (var i = 0; i < uri.length; ++i) {
+    bool onBoundary = true;
+    final separatorCodeUnits = ['/'.codeUnitAt(0), ':'.codeUnitAt(0)];
+    for (int i = 0; i < uri.length; ++i) {
       if (onBoundary) {
-        var candidate = uri.substring(i);
-        var candidateMapping = _mappings[candidate];
+        final candidate = uri.substring(i);
+        final candidateMapping = _mappings[candidate];
         if (candidateMapping != null) {
-          return candidateMapping.spanFor(line, column,
-              files: files, uri: candidate);
+          return candidateMapping.span_for(line, column, files: files, uri: candidate);
         }
       }
       onBoundary = separatorCodeUnits.contains(uri.codeUnitAt(i));
     }
-
     // Note: when there is no source map for an uri, this behaves like an
     // identity function, returning the requested location as the result.
-
+    //
     // Create a mock offset for the output location. We compute it in terms
     // of the input line and column to minimize the chances that two different
     // line and column locations are mapped to the same offset.
-    var offset = line * 1000000 + column;
-    var location = SourceLocation(offset,
-        line: line, column: column, sourceUrl: Uri.parse(uri));
-    return SourceMapSpan(location, location, '');
+    final offset = line * 1000000 + column;
+    final location = SourceLocation(
+      offset,
+      line: line,
+      column: column,
+      sourceUrl: Uri.parse(uri),
+    );
+    return SourcemapSpanImpl(
+      location,
+      location,
+      '',
+      false,
+    );
   }
+
+  @override
+  R match<R>({
+    required final R Function(SourcemapMultisection) multi,
+    required final R Function(SourcemapBundle) bundle,
+    required final R Function(SourcemapSingle) single,
+  }) =>
+      bundle(this);
 }
 
 /// A map containing direct source mappings.
-class SingleMapping extends Mapping {
+class SourcemapSingle implements Sourcemap {
   /// Source urls used in the mapping, indexed by id.
   final List<String> urls;
 
@@ -271,7 +329,7 @@ class SingleMapping extends Mapping {
   /// The [SourceFile]s to which the entries in [lines] refer.
   ///
   /// This is in the same order as [urls]. If this was constructed using
-  /// [SingleMapping.fromEntries], this contains files from any [FileLocation]s
+  /// [SourcemapSingle.from_entries], this contains files from any [FileLocation]s
   /// used to build the mapping. If it was parsed from JSON, it contains files
   /// for any sources whose contents were provided via the `"sourcesContent"`
   /// field.
@@ -286,89 +344,106 @@ class SingleMapping extends Mapping {
   String? targetUrl;
 
   /// Source root prepended to all entries in [urls].
-  String? sourceRoot;
+  String? source_root;
 
-  final Uri? _mapUrl;
+  final Uri? _map_url;
 
   final Map<String, dynamic> extensions;
 
-  SingleMapping._(this.targetUrl, this.files, this.urls, this.names, this.lines)
-      : _mapUrl = null,
-        extensions = {};
+  SourcemapSingle._(
+    final this.targetUrl,
+    final this.files,
+    final this.urls,
+    final this.names,
+    final this.lines,
+  )   : _map_url = null,
+        extensions = <String, dynamic>{};
 
-  factory SingleMapping.fromEntries(Iterable<builder.Entry> entries,
-      [String? fileUrl]) {
+  factory SourcemapSingle.from_entries(
+    final Iterable<Entry> entries, [
+    final String? fileUrl,
+  ]) {
     // The entries needs to be sorted by the target offsets.
-    var sourceEntries = entries.toList()..sort();
-    var lines = <TargetLineEntry>[];
-
+    final sourceEntries = entries.toList()..sort();
+    final lines = <TargetLineEntry>[];
     // Indices associated with file urls that will be part of the source map. We
     // rely on map order so that `urls.keys[urls[u]] == u`
-    var urls = <String, int>{};
-
+    final urls = <String, int>{};
     // Indices associated with identifiers that will be part of the source map.
     // We rely on map order so that `names.keys[names[n]] == n`
-    var names = <String, int>{};
-
-    /// The file for each URL, indexed by [urls]' values.
-    var files = <int, SourceFile>{};
-
+    final names = <String, int>{};
+    // The file for each URL, indexed by [urls]' values.
+    final files = <int, SourceFile>{};
     int? lineNum;
     late List<TargetEntry> targetEntries;
-    for (var sourceEntry in sourceEntries) {
+    for (final sourceEntry in sourceEntries) {
       if (lineNum == null || sourceEntry.target.line > lineNum) {
         lineNum = sourceEntry.target.line;
         targetEntries = <TargetEntry>[];
         lines.add(TargetLineEntry(lineNum, targetEntries));
       }
-
-      var sourceUrl = sourceEntry.source.sourceUrl;
-      var urlId = urls.putIfAbsent(
-          sourceUrl == null ? '' : sourceUrl.toString(), () => urls.length);
-
+      final sourceUrl = sourceEntry.source.sourceUrl;
+      final urlId = urls.putIfAbsent(sourceUrl == null ? '' : sourceUrl.toString(), () => urls.length);
       if (sourceEntry.source is FileLocation) {
-        files.putIfAbsent(
-            urlId, () => (sourceEntry.source as FileLocation).file);
+        files.putIfAbsent(urlId, () => (sourceEntry.source as FileLocation).file);
       }
-
-      var sourceEntryIdentifierName = sourceEntry.identifierName;
-      var srcNameId = sourceEntryIdentifierName == null
-          ? null
-          : names.putIfAbsent(sourceEntryIdentifierName, () => names.length);
-      targetEntries.add(TargetEntry(sourceEntry.target.column, urlId,
-          sourceEntry.source.line, sourceEntry.source.column, srcNameId));
+      final sourceEntryIdentifierName = sourceEntry.identifier_name;
+      final srcNameId = () {
+        if (sourceEntryIdentifierName == null) {
+          return null;
+        } else {
+          return names.putIfAbsent(sourceEntryIdentifierName, () => names.length);
+        }
+      }();
+      targetEntries.add(TargetEntry(
+          sourceEntry.target.column, urlId, sourceEntry.source.line, sourceEntry.source.column, srcNameId));
     }
-    return SingleMapping._(fileUrl, urls.values.map((i) => files[i]).toList(),
-        urls.keys.toList(), names.keys.toList(), lines);
+    return SourcemapSingle._(fileUrl, urls.values.map((final i) => files[i]).toList(), urls.keys.toList(),
+        names.keys.toList(), lines);
   }
 
-  SingleMapping.fromJson(Map map, {mapUrl})
-      : targetUrl = map['file'],
-        urls = List<String>.from(map['sources']),
-        names = List<String>.from(map['names'] ?? []),
-        files = List.filled(map['sources'].length, null),
-        sourceRoot = map['sourceRoot'],
+  SourcemapSingle.fromJson(
+    final Map<dynamic, dynamic> map, {
+    final dynamic mapUrl,
+  })  : targetUrl = map['file'] as String?,
+        urls = List<String>.from(map['sources'] as Iterable<dynamic>),
+        names = List<String>.from((map['names'] as Iterable<dynamic>?) ?? <dynamic>[]),
+        files = List.filled((map['sources'] as List<dynamic>).length, null),
+        source_root = map['sourceRoot'] as String?,
         lines = <TargetLineEntry>[],
-        _mapUrl = mapUrl is String ? Uri.parse(mapUrl) : mapUrl,
-        extensions = {} {
-    var sourcesContent = map['sourcesContent'] == null
-        ? const <String?>[]
-        : List<String?>.from(map['sourcesContent']);
-    for (var i = 0; i < urls.length && i < sourcesContent.length; i++) {
-      var source = sourcesContent[i];
-      if (source == null) continue;
-      files[i] = SourceFile.fromString(source, url: urls[i]);
+        _map_url = (() {
+          if (mapUrl is String) {
+            return Uri.parse(mapUrl);
+          } else {
+            return mapUrl as Uri?;
+          }
+        }()),
+        extensions = <String, dynamic>{} {
+    final sourcesContent = () {
+      if (map['sourcesContent'] == null) {
+        return const <String?>[];
+      } else {
+        return List<String?>.from(map['sourcesContent'] as Iterable<dynamic>);
+      }
+    }();
+    for (int i = 0; i < urls.length && i < sourcesContent.length; i++) {
+      final source = sourcesContent[i];
+      if (source == null) {
+        continue;
+      } else {
+        files[i] = SourceFile.fromString(source, url: urls[i]);
+      }
     }
-
-    var line = 0;
-    var column = 0;
-    var srcUrlId = 0;
-    var srcLine = 0;
-    var srcColumn = 0;
-    var srcNameId = 0;
-    var tokenizer = _MappingTokenizer(map['mappings']);
+    int line = 0;
+    int column = 0;
+    int srcUrlId = 0;
+    int srcLine = 0;
+    int srcColumn = 0;
+    int srcNameId = 0;
+    final tokenizer = _MappingTokenizer(
+      map['mappings'] as String,
+    );
     var entries = <TargetEntry>[];
-
     while (tokenizer.hasTokens) {
       if (tokenizer.nextKind.isNewLine) {
         if (entries.isNotEmpty) {
@@ -379,71 +454,77 @@ class SingleMapping extends Mapping {
         column = 0;
         tokenizer._consumeNewLine();
         continue;
-      }
-
-      // Decode the next entry, using the previous encountered values to
-      // decode the relative values.
-      //
-      // We expect 1, 4, or 5 values. If present, values are expected in the
-      // following order:
-      //   0: the starting column in the current line of the generated file
-      //   1: the id of the original source file
-      //   2: the starting line in the original source
-      //   3: the starting column in the original source
-      //   4: the id of the original symbol name
-      // The values are relative to the previous encountered values.
-      if (tokenizer.nextKind.isNewSegment) throw _segmentError(0, line);
-      column += tokenizer._consumeValue();
-      if (!tokenizer.nextKind.isValue) {
-        entries.add(TargetEntry(column));
       } else {
-        srcUrlId += tokenizer._consumeValue();
-        if (srcUrlId >= urls.length) {
-          throw StateError(
-              'Invalid source url id. $targetUrl, $line, $srcUrlId');
-        }
-        if (!tokenizer.nextKind.isValue) throw _segmentError(2, line);
-        srcLine += tokenizer._consumeValue();
-        if (!tokenizer.nextKind.isValue) throw _segmentError(3, line);
-        srcColumn += tokenizer._consumeValue();
+        // Decode the next entry, using the previous encountered values to
+        // decode the relative values.
+        //
+        // We expect 1, 4, or 5 values. If present, values are expected in the
+        // following order:
+        //   0: the starting column in the current line of the generated file
+        //   1: the id of the original source file
+        //   2: the starting line in the original source
+        //   3: the starting column in the original source
+        //   4: the id of the original symbol name
+        // The values are relative to the previous encountered values.
+        if (tokenizer.nextKind.isNewSegment) throw _segmentError(0, line);
+        column += tokenizer._consumeValue();
         if (!tokenizer.nextKind.isValue) {
-          entries.add(TargetEntry(column, srcUrlId, srcLine, srcColumn));
+          entries.add(TargetEntry(column));
         } else {
-          srcNameId += tokenizer._consumeValue();
-          if (srcNameId >= names.length) {
-            throw StateError('Invalid name id: $targetUrl, $line, $srcNameId');
+          srcUrlId += tokenizer._consumeValue();
+          if (srcUrlId >= urls.length) {
+            throw StateError('Invalid source url id. $targetUrl, $line, $srcUrlId');
           }
-          entries.add(
-              TargetEntry(column, srcUrlId, srcLine, srcColumn, srcNameId));
+          if (!tokenizer.nextKind.isValue) throw _segmentError(2, line);
+          srcLine += tokenizer._consumeValue();
+          if (!tokenizer.nextKind.isValue) throw _segmentError(3, line);
+          srcColumn += tokenizer._consumeValue();
+          if (!tokenizer.nextKind.isValue) {
+            entries.add(TargetEntry(column, srcUrlId, srcLine, srcColumn));
+          } else {
+            srcNameId += tokenizer._consumeValue();
+            if (srcNameId >= names.length) {
+              throw StateError('Invalid name id: $targetUrl, $line, $srcNameId');
+            }
+            entries.add(TargetEntry(column, srcUrlId, srcLine, srcColumn, srcNameId));
+          }
         }
+        if (tokenizer.nextKind.isNewSegment) tokenizer._consumeNewSegment();
       }
-      if (tokenizer.nextKind.isNewSegment) tokenizer._consumeNewSegment();
     }
     if (entries.isNotEmpty) {
       lines.add(TargetLineEntry(line, entries));
     }
-
-    map.forEach((name, value) {
-      if (name.startsWith('x_')) extensions[name] = value;
-    });
+    map.forEach(
+      (final dynamic name, final dynamic value) {
+        if (name is String) {
+          if (name.startsWith('x_')) {
+            extensions[name] = value;
+          }
+        } else {
+          throw Exception("Invalid map key " + name.toString());
+        }
+      },
+    );
   }
 
   /// Encodes the Mapping mappings as a json map.
   ///
   /// If [includeSourceContents] is `true`, this includes the source file
   /// contents from [files] in the map if possible.
-  Map toJson({bool includeSourceContents = false}) {
-    var buff = StringBuffer();
-    var line = 0;
-    var column = 0;
-    var srcLine = 0;
-    var srcColumn = 0;
-    var srcUrlId = 0;
-    var srcNameId = 0;
-    var first = true;
-
-    for (var entry in lines) {
-      var nextLine = entry.line;
+  Map<dynamic, dynamic> toJson({
+    final bool includeSourceContents = false,
+  }) {
+    final buff = StringBuffer();
+    int line = 0;
+    int column = 0;
+    int srcLine = 0;
+    int srcColumn = 0;
+    int srcUrlId = 0;
+    int srcNameId = 0;
+    bool first = true;
+    for (final entry in lines) {
+      final nextLine = entry.line;
       if (nextLine > line) {
         for (var i = line; i < nextLine; ++i) {
           buff.write(';');
@@ -452,59 +533,75 @@ class SingleMapping extends Mapping {
         column = 0;
         first = true;
       }
-
-      for (var segment in entry.entries) {
+      for (final segment in entry.entries) {
         if (!first) buff.write(',');
         first = false;
         column = _append(buff, column, segment.column);
-
         // Encoding can be just the column offset if there is no source
         // information.
-        var newUrlId = segment.sourceUrlId;
-        if (newUrlId == null) continue;
+        final newUrlId = segment.sourceUrlId;
+        if (newUrlId == null) {
+          continue;
+        }
         srcUrlId = _append(buff, srcUrlId, newUrlId);
         srcLine = _append(buff, srcLine, segment.sourceLine!);
         srcColumn = _append(buff, srcColumn, segment.sourceColumn!);
-
-        if (segment.sourceNameId == null) continue;
+        if (segment.sourceNameId == null) {
+          continue;
+        }
         srcNameId = _append(buff, srcNameId, segment.sourceNameId!);
       }
     }
-
-    var result = {
+    final result = {
       'version': 3,
-      'sourceRoot': sourceRoot ?? '',
+      'sourceRoot': source_root ?? '',
       'sources': urls,
       'names': names,
       'mappings': buff.toString()
     };
-    if (targetUrl != null) result['file'] = targetUrl!;
-
-    if (includeSourceContents) {
-      result['sourcesContent'] = files.map((file) => file?.getText(0)).toList();
+    if (targetUrl != null) {
+      result['file'] = targetUrl!;
     }
-    extensions.forEach((name, value) => result[name] = value);
-
+    if (includeSourceContents) {
+      result['sourcesContent'] = files.map((final file) => file?.getText(0)).toList();
+    }
+    extensions.forEach(
+      (final name, final dynamic value) => result[name] = value as Object,
+    );
     return result;
   }
 
   /// Appends to [buff] a VLQ encoding of [newValue] using the difference
   /// between [oldValue] and [newValue]
-  static int _append(StringBuffer buff, int oldValue, int newValue) {
-    buff.writeAll(encodeVlq(newValue - oldValue));
+  static int _append(
+    final StringBuffer buff,
+    final int oldValue,
+    final int newValue,
+  ) {
+    buff.writeAll(Vlq.encodeVlq(newValue - oldValue));
     return newValue;
   }
 
-  StateError _segmentError(int seen, int line) =>
-      StateError('Invalid entry in sourcemap, expected 1, 4, or 5'
-          ' values, but got $seen.\ntargeturl: $targetUrl, line: $line');
+  StateError _segmentError(
+    final int seen,
+    final int line,
+  ) =>
+      StateError(
+        'Invalid entry in sourcemap, expected 1, 4, or 5'
+        ' values, but got $seen.\ntargeturl: $targetUrl, line: $line',
+      );
 
   /// Returns [TargetLineEntry] which includes the location in the target [line]
   /// number. In particular, the resulting entry is the last entry whose line
   /// number is lower or equal to [line].
-  TargetLineEntry? _findLine(int line) {
-    var index = binarySearch(lines, (e) => e.line > line);
-    return (index <= 0) ? null : lines[index - 1];
+  // TODO bad, don't look for line here.
+  TargetLineEntry? _findLine(final int line) {
+    final index = binarySearch(lines)((final e) => e.line > line);
+    if (index <= 0) {
+      return null;
+    } else {
+      return lines[index - 1];
+    }
   }
 
   /// Returns [TargetEntry] which includes the location denoted by
@@ -512,50 +609,105 @@ class SingleMapping extends Mapping {
   /// the last entry whose column is lower or equal than [column]. If
   /// [lineEntry] corresponds to a line prior to [line], then the result will be
   /// the very last entry on that line.
-  TargetEntry? _findColumn(int line, int column, TargetLineEntry? lineEntry) {
-    if (lineEntry == null || lineEntry.entries.isEmpty) return null;
-    if (lineEntry.line != line) return lineEntry.entries.last;
-    var entries = lineEntry.entries;
-    var index = binarySearch(entries, (e) => e.column > column);
-    return (index <= 0) ? null : entries[index - 1];
+  // TODO bad, don't look for column here.
+  TargetEntry? _findColumn(
+    final int line,
+    final int column,
+    final TargetLineEntry? lineEntry,
+  ) {
+    if (lineEntry == null || lineEntry.entries.isEmpty) {
+      return null;
+    } else if (lineEntry.line != line) {
+      return lineEntry.entries.last;
+    } else {
+      final entries = lineEntry.entries;
+      final index = binarySearch(entries)((final e) => e.column > column);
+      if (index <= 0) {
+        return null;
+      } else {
+        return entries[index - 1];
+      }
+    }
   }
 
   @override
-  SourceMapSpan? spanFor(int line, int column,
-      {Map<String, SourceFile>? files, String? uri}) {
-    var entry = _findColumn(line, column, _findLine(line));
-    if (entry == null) return null;
-
-    var sourceUrlId = entry.sourceUrlId;
-    if (sourceUrlId == null) return null;
-
-    var url = urls[sourceUrlId];
-    if (sourceRoot != null) {
-      url = '$sourceRoot$url';
-    }
-
-    var sourceNameId = entry.sourceNameId;
-    var file = files?[url];
-    if (file != null) {
-      var start = file.getOffset(entry.sourceLine!, entry.sourceColumn);
-      if (sourceNameId != null) {
-        var text = names[sourceNameId];
-        return SourceMapFileSpan(file.span(start, start + text.length),
-            isIdentifier: true);
-      } else {
-        return SourceMapFileSpan(file.location(start).pointSpan());
-      }
+  SourcemapSpan? span_for(
+    final int line,
+    final int column, {
+    final Map<String, SourceFile>? files,
+    final String? uri,
+  }) {
+    final entry = _findColumn(
+      line,
+      column,
+      _findLine(line),
+    );
+    if (entry == null) {
+      return null;
     } else {
-      var start = SourceLocation(0,
-          sourceUrl: _mapUrl?.resolve(url) ?? url,
-          line: entry.sourceLine,
-          column: entry.sourceColumn);
-
-      // Offset and other context is not available.
-      if (sourceNameId != null) {
-        return SourceMapSpan.identifier(start, names[sourceNameId]);
+      final sourceUrlId = entry.sourceUrlId;
+      if (sourceUrlId == null) {
+        return null;
       } else {
-        return SourceMapSpan(start, start, '');
+        var url = urls[sourceUrlId];
+        if (source_root != null) {
+          url = source_root.toString() + url;
+        }
+        final sourceNameId = entry.sourceNameId;
+        final file = files?[url];
+        if (file != null) {
+          final start = file.getOffset(
+            entry.sourceLine!,
+            entry.sourceColumn,
+          );
+          if (sourceNameId != null) {
+            final text = names[sourceNameId];
+            final span = file.span(start, start + text.length);
+            return SourcemapSpanImpl(
+              span.start,
+              span.end,
+              span.text,
+              true,
+            );
+          } else {
+            final span = file.location(start).pointSpan();
+            return SourcemapSpanImpl(
+              span.start,
+              span.end,
+              span.text,
+              false,
+            );
+          }
+        } else {
+          final start = SourceLocation(
+            0,
+            sourceUrl: _map_url?.resolve(url) ?? url,
+            line: entry.sourceLine,
+            column: entry.sourceColumn,
+          );
+          // Offset and other context is not available.
+          if (sourceNameId != null) {
+            final text = names[sourceNameId];
+            return SourcemapSpanImpl(
+              start,
+              SourceLocation(
+                start.offset + text.length,
+                sourceUrl: start.sourceUrl,
+                line: start.line,
+                column: start.column + text.length,
+              ),
+              text,
+              true,
+            );
+          } else {
+            return SourcemapSpanImpl(
+              start,
+              start,
+              '',
+              false,
+            );
+          }
+        }
       }
     }
   }
@@ -566,7 +718,7 @@ class SingleMapping extends Mapping {
           ..write('targetUrl: ')
           ..write(targetUrl)
           ..write(', sourceRoot: ')
-          ..write(sourceRoot)
+          ..write(source_root)
           ..write(', urls: ')
           ..write(urls)
           ..write(', names: ')
@@ -578,28 +730,28 @@ class SingleMapping extends Mapping {
   }
 
   String get debugString {
-    var buff = StringBuffer();
-    for (var lineEntry in lines) {
-      var line = lineEntry.line;
-      for (var entry in lineEntry.entries) {
+    final buff = StringBuffer();
+    for (final lineEntry in lines) {
+      final line = lineEntry.line;
+      for (final entry in lineEntry.entries) {
         buff
           ..write(targetUrl)
           ..write(': ')
           ..write(line)
           ..write(':')
           ..write(entry.column);
-        var sourceUrlId = entry.sourceUrlId;
+        final sourceUrlId = entry.sourceUrlId;
         if (sourceUrlId != null) {
           buff
             ..write('   -->   ')
-            ..write(sourceRoot)
+            ..write(source_root)
             ..write(urls[sourceUrlId])
             ..write(': ')
             ..write(entry.sourceLine)
             ..write(':')
             ..write(entry.sourceColumn);
         }
-        var sourceNameId = entry.sourceNameId;
+        final sourceNameId = entry.sourceNameId;
         if (sourceNameId != null) {
           buff
             ..write(' (')
@@ -611,16 +763,25 @@ class SingleMapping extends Mapping {
     }
     return buff.toString();
   }
+
+  @override
+  R match<R>({
+    required final R Function(SourcemapMultisection) multi,
+    required final R Function(SourcemapBundle) bundle,
+    required final R Function(SourcemapSingle) single,
+  }) =>
+      single(this);
 }
 
 /// A line entry read from a source map.
 class TargetLineEntry {
   final int line;
-  List<TargetEntry> entries;
-  TargetLineEntry(this.line, this.entries);
+  final List<TargetEntry> entries;
 
-  @override
-  String toString() => '$runtimeType: $line $entries';
+  const TargetLineEntry(
+    final this.line,
+    final this.entries,
+  );
 }
 
 /// A target segment entry read from a source map
@@ -631,46 +792,57 @@ class TargetEntry {
   final int? sourceColumn;
   final int? sourceNameId;
 
-  TargetEntry(this.column,
-      [this.sourceUrlId,
-      this.sourceLine,
-      this.sourceColumn,
-      this.sourceNameId]);
-
-  @override
-  String toString() => '$runtimeType: '
-      '($column, $sourceUrlId, $sourceLine, $sourceColumn, $sourceNameId)';
+  const TargetEntry(
+    final this.column, [
+    final this.sourceUrlId,
+    final this.sourceLine,
+    final this.sourceColumn,
+    final this.sourceNameId,
+  ]);
 }
 
 /// A character iterator over a string that can peek one character ahead.
 class _MappingTokenizer implements Iterator<String> {
-  final String _internal;
+  final String internal;
   final int _length;
   int index = -1;
-  _MappingTokenizer(String internal)
-      : _internal = internal,
-        _length = internal.length;
+
+  _MappingTokenizer(
+    final this.internal,
+  ) : _length = internal.length;
 
   // Iterator API is used by decodeVlq to consume VLQ entries.
   @override
   bool moveNext() => ++index < _length;
 
   @override
-  String get current => (index >= 0 && index < _length)
-      ? _internal[index]
-      : throw RangeError.index(index, _internal);
+  String get current {
+    if (index >= 0 && index < _length) {
+      return internal[index];
+    } else {
+      return throw RangeError.index(index, internal);
+    }
+  }
 
   bool get hasTokens => index < _length - 1 && _length > 0;
 
   _TokenKind get nextKind {
-    if (!hasTokens) return _TokenKind.eof;
-    var next = _internal[index + 1];
-    if (next == ';') return _TokenKind.line;
-    if (next == ',') return _TokenKind.segment;
-    return _TokenKind.value;
+    if (!hasTokens) {
+      return _TokenKind.eof;
+    } else {
+      final next = internal[index + 1];
+      if (next == ';') {
+        return _TokenKind.line;
+      } else if (next == ',') {
+        return _TokenKind.segment;
+      } else {
+        return _TokenKind.value;
+      }
+    }
   }
 
-  int _consumeValue() => decodeVlq(this);
+  int _consumeValue() => Vlq.decodeVlq(this);
+
   void _consumeNewLine() {
     ++index;
   }
@@ -683,17 +855,15 @@ class _MappingTokenizer implements Iterator<String> {
   // position.
   @override
   String toString() {
-    var buff = StringBuffer();
+    final buff = StringBuffer();
     for (var i = 0; i < index; i++) {
-      buff.write(_internal[i]);
+      buff.write(internal[i]);
     }
     buff.write('[31m');
-    try {
-      buff.write(current);
-    } on RangeError catch (_) {}
+    buff.write(current);
     buff.write('[0m');
-    for (var i = index + 1; i < _internal.length; i++) {
-      buff.write(_internal[i]);
+    for (var i = index + 1; i < internal.length; i++) {
+      buff.write(internal[i]);
     }
     buff.write(' ($index)');
     return buff.toString();
@@ -708,8 +878,138 @@ class _TokenKind {
   final bool isNewLine;
   final bool isNewSegment;
   final bool isEof;
-  bool get isValue => !isNewLine && !isNewSegment && !isEof;
 
-  const _TokenKind(
-      {this.isNewLine = false, this.isNewSegment = false, this.isEof = false});
+  const _TokenKind({
+    final this.isNewLine = false,
+    final this.isNewSegment = false,
+    final this.isEof = false,
+  });
+
+  bool get isValue => !isNewLine && !isNewSegment && !isEof;
 }
+
+/// Utilities to encode and decode VLQ values used in source maps.
+///
+/// Sourcemaps are encoded with variable length numbers as base64 encoded
+/// strings with the least significant digit coming first. Each base64 digit
+/// encodes a 5-bit value (0-31) and a continuation bit. Signed values can be
+/// represented by using the least significant bit of the value as the sign bit.
+///
+/// For more details see the source map [version 3 documentation](https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit?usp=sharing).
+abstract class Vlq {
+  /// Creates the VLQ encoding of [value] as a sequence of characters
+  static Iterable<String> encodeVlq(
+    int value,
+  ) {
+    if (value < _minInt32 || value > _maxInt32) {
+      throw ArgumentError('expected 32 bit int, got: $value');
+    } else {
+      final res = <String>[];
+      var signBit = 0;
+      if (value < 0) {
+        signBit = 1;
+        // ignore: parameter_assignments
+        value = -value;
+      }
+      // ignore: parameter_assignments
+      value = (value << 1) | signBit;
+      do {
+        var digit = value & _vlqBaseMask;
+        // ignore: parameter_assignments
+        value >>= _vlqBaseShift;
+        if (value > 0) {
+          digit |= _vlqContinuationBit;
+        }
+        res.add(_base64Digits[digit]);
+      } while (value > 0);
+      return res;
+    }
+  }
+
+  /// Decodes a value written as a sequence of VLQ characters. The first input
+  /// character will be `chars.current` after calling `chars.moveNext` once. The
+  /// iterator is advanced until a stop character is found (a character without
+  /// the [_vlqContinuationBit]).
+  static int decodeVlq(
+    final Iterator<String> chars,
+  ) {
+    var result = 0;
+    var stop = false;
+    var shift = 0;
+    while (!stop) {
+      if (!chars.moveNext()) throw StateError('incomplete VLQ value');
+      final char = chars.current;
+      var digit = _digits[char];
+      if (digit == null) {
+        throw FormatException('invalid character in VLQ encoding: $char');
+      } else {
+        stop = (digit & _vlqContinuationBit) == 0;
+        digit &= _vlqBaseMask;
+        result += digit << shift;
+        shift += _vlqBaseShift;
+      }
+    }
+    // Result uses the least significant bit as a sign bit. We convert it into a
+    // two-complement value. For example,
+    //   2 (10 binary) becomes 1
+    //   3 (11 binary) becomes -1
+    //   4 (100 binary) becomes 2
+    //   5 (101 binary) becomes -2
+    //   6 (110 binary) becomes 3
+    //   7 (111 binary) becomes -3
+    final negate = (result & 1) == 1;
+    result = result >> 1;
+    result = negate ? -result : result;
+    // TODO(sigmund): can we detect this earlier?
+    if (result < _minInt32 || result > _maxInt32) {
+      throw FormatException('expected an encoded 32 bit int, but we got: $result');
+    } else {
+      return result;
+    }
+  }
+
+  static const int _vlqBaseShift = 5;
+  static const int _vlqBaseMask = (1 << 5) - 1;
+  static const int _vlqContinuationBit = 1 << 5;
+  static const String _base64Digits = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  static final Map<String, int> _digits = () {
+    final map = <String, int>{};
+    for (var i = 0; i < 64; i++) {
+      map[_base64Digits[i]] = i;
+    }
+    return map;
+  }();
+  static final int _maxInt32 = (pow(2, 31) as int) - 1;
+  static final int _minInt32 = -(pow(2, 31) as int);
+}
+
+/// Find the first entry in a sorted [list] that matches a monotonic predicate.
+/// Given a result `n`, that all items before `n` will not match, `n` matches,
+/// and all items after `n` match too. The result is -1 when there are no
+/// items, 0 when all items match, and list.length when none does.
+int Function(
+  bool Function(T),
+) binarySearch<T>(
+  final List<T> list,
+) =>
+    (final matches) {
+      if (list.isEmpty) {
+        return -1;
+      } else if (matches(list.first)) {
+        return 0;
+      } else if (!matches(list.last)) {
+        return list.length;
+      } else {
+        var min = 0;
+        var max = list.length - 1;
+        while (min < max) {
+          final half = min + ((max - min) ~/ 2);
+          if (matches(list[half])) {
+            max = half;
+          } else {
+            min = half + 1;
+          }
+        }
+        return max;
+      }
+    };

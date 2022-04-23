@@ -1,5 +1,1 @@
-include: package:lints/recommended.yaml
-
-linter:
-  rules:
-    - comment_references
+include: package:extra_pedantic/analysis_options.yaml

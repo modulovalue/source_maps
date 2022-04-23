@@ -3,51 +3,55 @@
 // BSD-style license that can be found in the LICENSE file.
 
 /// Tests for the binary search utility algorithm.
-library test.utils_test;
 
+import 'package:source_maps2/parser.dart';
 import 'package:test/test.dart';
-import 'package:source_maps/src/utils.dart';
 
 void main() {
   group('binary search', () {
     test('empty', () {
-      expect(binarySearch([], (x) => true), -1);
+      expect(binarySearch(<int>[])((final x) => true), -1);
     });
-
     test('single element', () {
-      expect(binarySearch([1], (x) => true), 0);
-      expect(binarySearch([1], (x) => false), 1);
+      expect(binarySearch([1])((final x) => true), 0);
+      expect(binarySearch([1])((final x) => false), 1);
     });
-
     test('no matches', () {
-      var list = [1, 2, 3, 4, 5, 6, 7];
-      expect(binarySearch(list, (x) => false), list.length);
+      final list = [1, 2, 3, 4, 5, 6, 7];
+      expect(binarySearch(list)((final x) => false), list.length);
     });
-
     test('all match', () {
-      var list = [1, 2, 3, 4, 5, 6, 7];
-      expect(binarySearch(list, (x) => true), 0);
+      final list = [1, 2, 3, 4, 5, 6, 7];
+      expect(binarySearch(list)((final x) => true), 0);
     });
-
     test('compare with linear search', () {
       for (var size = 0; size < 100; size++) {
-        var list = [];
+        final list = <int>[];
         for (var i = 0; i < size; i++) {
           list.add(i);
         }
         for (var pos = 0; pos <= size; pos++) {
-          expect(binarySearch(list, (x) => x >= pos),
-              _linearSearch(list, (x) => x >= pos));
+          expect(binarySearch<int>(list)((final x) => x >= pos), _linearSearch(list)((final x) => x >= pos));
         }
       }
     });
   });
 }
 
-int _linearSearch(list, predicate) {
-  if (list.length == 0) return -1;
-  for (var i = 0; i < list.length; i++) {
-    if (predicate(list[i])) return i;
-  }
-  return list.length;
-}
+int Function(
+  bool Function(T),
+) _linearSearch<T>(
+  final List<T> list,
+) =>
+    (final predicate) {
+      if (list.isEmpty) {
+        return -1;
+      } else {
+        for (var i = 0; i < list.length; i++) {
+          if (predicate(list[i])) {
+            return i;
+          }
+        }
+        return list.length;
+      }
+    };

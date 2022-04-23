@@ -2,33 +2,40 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-library test.source_maps_test;
-
 import 'dart:convert';
 
-import 'package:source_maps/source_maps.dart';
+import 'package:source_maps2/builder.dart';
 import 'package:test/test.dart';
 
 import 'common.dart';
 
 void main() {
   test('builder - with span', () {
-    var map = (SourceMapBuilder()
-          ..addSpan(inputVar1, outputVar1)
-          ..addSpan(inputFunction, outputFunction)
-          ..addSpan(inputVar2, outputVar2)
-          ..addSpan(inputExpr, outputExpr))
-        .build(output.url.toString());
-    expect(map, equals(expectedMap));
+    final map = (SourceMapBuilderImpl()
+          ..add_span(inputVar1, outputVar1)
+          ..add_span(inputFunction, outputFunction)
+          ..add_span(inputVar2, outputVar2)
+          ..add_span(inputExpr, outputExpr))
+        .build(output.url.toString())
+        .toJson();
+    expect(
+      map,
+      equals(expectedMap),
+    );
   });
-
   test('builder - with location', () {
-    var str = (SourceMapBuilder()
-          ..addLocation(inputVar1.start, outputVar1.start, 'longVar1')
-          ..addLocation(inputFunction.start, outputFunction.start, 'longName')
-          ..addLocation(inputVar2.start, outputVar2.start, 'longVar2')
-          ..addLocation(inputExpr.start, outputExpr.start, null))
-        .toJson(output.url.toString());
-    expect(str, jsonEncode(expectedMap));
+    final str = jsonEncode(
+      (SourceMapBuilderImpl()
+            ..add_location(inputVar1.start, outputVar1.start, 'longVar1')
+            ..add_location(inputFunction.start, outputFunction.start, 'longName')
+            ..add_location(inputVar2.start, outputVar2.start, 'longVar2')
+            ..add_location(inputExpr.start, outputExpr.start, null))
+          .build(output.url.toString())
+          .toJson(),
+    );
+    expect(
+      str,
+      jsonEncode(expectedMap),
+    );
   });
 }
