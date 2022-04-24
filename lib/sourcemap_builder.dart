@@ -8,16 +8,19 @@ abstract class SourcemapBuilder {
   /// `isIdentifier` set to true, this entry is considered to represent an
   /// identifier whose value will be stored in the source map.
   void add_span({
+    required final Uri? url,
     required final SourcemapSpan source,
     required final SourcemapSpan target,
   });
 
   /// Adds an entry mapping [target] to [source].
-  void add_location(
-    final SourcemapLocation source,
-    final SourcemapLocation target,
-    final String? identifier,
-  );
+  void add_location({
+    required final String? file,
+    required final Uri? url,
+    required final SourcemapLocation source,
+    required final SourcemapLocation target,
+    required final String? identifier,
+  });
 
   /// Build this builder to a sourcemap.
   SourcemapSingle build({
@@ -27,6 +30,10 @@ abstract class SourcemapBuilder {
 
 /// An entry in the source map builder.
 abstract class SourcemapBuilderEntry {
+  Uri? get sourceUrl;
+
+  String? get file;
+
   /// Span denoting the original location in the input source file
   SourcemapLocation get source;
 
@@ -63,13 +70,16 @@ class SourcemapBuilderImpl implements SourcemapBuilder {
 
   @override
   void add_span({
+    required final Uri? url,
     required final SourcemapSpan source,
     required final SourcemapSpan target,
   }) {
     _entries.add(
       SourcemapBuilderEntryImpl(
+        file: source.file,
         source: source.start,
         target: target.start,
+        sourceUrl: url,
         identifier_name: () {
           if (source.is_identifier) {
             return source.text;
@@ -82,16 +92,20 @@ class SourcemapBuilderImpl implements SourcemapBuilder {
   }
 
   @override
-  void add_location(
-    final SourcemapLocation source,
-    final SourcemapLocation target,
-    final String? identifier,
-  ) {
+  void add_location({
+    required final String? file,
+    required final Uri? url,
+    required final SourcemapLocation source,
+    required final SourcemapLocation target,
+    required final String? identifier,
+  }) {
     _entries.add(
       SourcemapBuilderEntryImpl(
+        file: file,
         source: source,
         target: target,
         identifier_name: identifier,
+        sourceUrl: url
       ),
     );
   }
@@ -110,8 +124,8 @@ class SourcemapBuilderImpl implements SourcemapBuilder {
           if (res != 0) {
             return res;
           } else {
-            final _res = a.source.sourceUrl.toString().compareTo(
-                  b.source.sourceUrl.toString(),
+            final _res = a.sourceUrl.toString().compareTo(
+                  b.sourceUrl.toString(),
                 );
             if (_res != 0) {
               return _res;
@@ -131,7 +145,7 @@ class SourcemapBuilderImpl implements SourcemapBuilder {
     // We rely on map order so that `names.keys[names[n]] == n`
     final names = <String, int>{};
     // The file for each URL, indexed by [urls]' values.
-    final files = <int, SourcemapFile>{};
+    final files = <int, String>{};
     int line_num = -1;
     List<SourcemapTargetEntry> target_entries = [];
     for (final source_entry in source_entries) {
@@ -147,7 +161,7 @@ class SourcemapBuilderImpl implements SourcemapBuilder {
       }
       final url_id = urls.putIfAbsent(
         () {
-          final source_url = source_entry.source.sourceUrl;
+          final source_url = source_entry.sourceUrl;
           if (source_url == null) {
             return '';
           } else {
@@ -157,7 +171,7 @@ class SourcemapBuilderImpl implements SourcemapBuilder {
         () => urls.length,
       );
       final s = source_entry.source;
-      final file = s.file;
+      final file = source_entry.file;
       if (file != null) {
         files.putIfAbsent(
           url_id,
@@ -204,10 +218,16 @@ class SourcemapBuilderEntryImpl implements SourcemapBuilderEntry {
   final SourcemapLocation target;
   @override
   final String? identifier_name;
+  @override
+  final Uri? sourceUrl;
+  @override
+  final String? file;
 
   const SourcemapBuilderEntryImpl({
     required this.source,
+    required this.file,
     required this.target,
     required this.identifier_name,
+    required this.sourceUrl,
   });
 }

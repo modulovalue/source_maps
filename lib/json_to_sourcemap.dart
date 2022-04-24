@@ -9,16 +9,19 @@ import 'vlq.dart';
 /// file itself. If it's passed, any URLs in the source
 /// map will be interpreted as relative to this URL
 /// when generating spans.
-Sourcemap sourcemap_from_json(
-  final dynamic json, {
-  final Uri? source_map_file_url,
+Sourcemap sourcemap_from_json({
+  required final dynamic json,
+  required final Uri? source_map_file_url,
 }) {
   // TODO(tjblasi): Ignore the first line of [jsonMap] if the JSON safety string `)]}'` begins the string representation of the map.
   if (json is List) {
     final sourcemap = SourcemapCollectionImpl();
     for (final map in json) {
       sourcemap.addMapping(
-        sourcemap_from_json(map as Object, source_map_file_url: source_map_file_url) as SourcemapSingle,
+        sourcemap_from_json(
+          json: map as Object,
+          source_map_file_url: source_map_file_url,
+        ) as SourcemapSingle,
       );
     }
     return sourcemap;
@@ -38,7 +41,9 @@ Sourcemap sourcemap_from_json(
           );
         } else {
           final sections = map['sections'] as List<dynamic>;
-          final sourcemap = SourcemapMultisectionImpl();
+          final lineStart = <int>[];
+          final columnStart = <int>[];
+          final maps = <Sourcemap>[];
           for (final section in sections) {
             final offset = (section as Map<String, dynamic>)['offset'] as int?;
             if (offset == null) {
@@ -52,16 +57,16 @@ Sourcemap sourcemap_from_json(
                 if (column == null) {
                   throw const FormatException('offset missing column');
                 } else {
-                  sourcemap.lineStart.add(line);
-                  sourcemap.columnStart.add(column);
+                  lineStart.add(line);
+                  columnStart.add(column);
                   final dynamic url = section['url'];
                   final dynamic map = section['map'];
                   if (url != null && map != null) {
                     throw const FormatException("section can't use both url and map entries");
                   } else if (map != null) {
-                    sourcemap.maps.add(
+                    maps.add(
                       sourcemap_from_json(
-                        map as Object,
+                        json: map as Object,
                         source_map_file_url: source_map_file_url,
                       ),
                     );
@@ -74,18 +79,23 @@ Sourcemap sourcemap_from_json(
               }
             }
           }
-          if (sourcemap.lineStart.isEmpty) {
+          if (lineStart.isEmpty) {
             throw const FormatException(
               'expected at least one section',
             );
+          } else {
+            return SourcemapMultisectionImpl(
+              lineStart: lineStart,
+              columnStart: columnStart,
+              maps: maps,
+            );
           }
-          return sourcemap;
         }
       } else {
         final targetUrl = map['file'] as String;
         final urls = List<String>.from(map['sources'] as Iterable<dynamic>);
         final names = List<String>.from((map['names'] as Iterable<dynamic>?) ?? <dynamic>[]);
-        final files = List<SourcemapFile?>.filled(urls.length, null);
+        final files = List<String?>.filled(urls.length, null);
         final source_root = map['sourceRoot'] as String?;
         final lines = <SourcemapTargetLineEntry>[];
         final _map_url = source_map_file_url;
@@ -102,10 +112,7 @@ Sourcemap sourcemap_from_json(
           if (source == null) {
             continue;
           } else {
-            files[i] = SourcemapFileImpl(
-              content: source,
-              url: Uri.tryParse(urls[i]),
-            );
+            files[i] = source;
           }
         }
         StateError _segmentError(

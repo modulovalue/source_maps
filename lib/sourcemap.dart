@@ -23,14 +23,6 @@ abstract class SourcemapMultisection implements Sourcemap {
 /// A map containing a collection of sourcemaps.
 abstract class SourcemapCollection implements Sourcemap {
   Map<String, SourcemapSingle> get mappings;
-
-  void addMapping(
-    final SourcemapSingle mapping,
-  );
-
-  bool containsMapping(
-    final String url,
-  );
 }
 
 /// A map containing direct source mappings.
@@ -41,11 +33,10 @@ abstract class SourcemapSingle implements Sourcemap {
   /// Source names used in the mapping, indexed by id.
   List<String> get names;
 
-  /// The [SourcemapFile]s to which the entries in [lines] refer.
+  /// The files to which the entries in [lines] refer.
   ///
   /// Files whose contents aren't available are `null`.
-  // TODO just a string for the content should be enough because urls give the url?
-  List<SourcemapFile?> get files;
+  List<String?> get files;
 
   /// Entries indicating the beginning of each span.
   List<SourcemapTargetLineEntry> get lines;
@@ -72,6 +63,10 @@ abstract class SourcemapSpan {
   /// If this is `true`, [text] is the value of the identifier.
   bool get is_identifier;
 
+  Uri? get sourceUrl;
+
+  String? get file;
+
   /// The start location of this span.
   SourcemapLocation get start;
 
@@ -80,6 +75,21 @@ abstract class SourcemapSpan {
 
   /// The source text for this span.
   String get text;
+}
+
+/// A location into a source file within a sourcemap.
+abstract class SourcemapLocation {
+  int get offset;
+
+  int get line;
+
+  int get column;
+}
+
+abstract class SourcemapFile {
+  Uri? get url;
+
+  String? get file;
 }
 
 /// A line entry read from a source map.
@@ -102,38 +112,18 @@ abstract class SourcemapTargetEntry {
   int? get source_name_id;
 }
 
-/// A location into a source file within a sourcemap.
-abstract class SourcemapLocation {
-  int get offset;
-
-  Uri? get sourceUrl;
-
-  SourcemapFile? get file;
-
-  int get line;
-
-  int get column;
-}
-
-/// A location to a source file within a sourcemap.
-abstract class SourcemapFile {
-  String get content;
-
-  Uri? get url;
-}
-
 /// Contains ways to project from line/column to index.
 abstract class SourcemapTextbuffer {
   /// Projects a line and column to an offset.
   int calculate_index({
-    required final SourcemapFile file,
+    required final String file,
     required final int line,
     required final int column,
   });
 
   /// Projects an offset to a line and column.
   R calculate_location<R>({
-    required final SourcemapFile file,
+    required final String file,
     required final int offset,
     required final R Function(int column, int line) make,
   });
@@ -154,10 +144,11 @@ class SourcemapMultisectionImpl implements SourcemapMultisection {
   @override
   final List<Sourcemap> maps;
 
-  SourcemapMultisectionImpl()
-      : lineStart = [],
-        columnStart = [],
-        maps = [];
+  const SourcemapMultisectionImpl({
+    required final this.lineStart,
+    required final this.columnStart,
+    required final this.maps,
+  });
 
   @override
   R match<R>({
@@ -174,23 +165,12 @@ class SourcemapCollectionImpl implements SourcemapCollection {
 
   SourcemapCollectionImpl() : mappings = {};
 
-  @override
   void addMapping(
     final SourcemapSingle mapping,
   ) {
     mappings[mapping.target_url] = mapping;
   }
 
-  @override
-  String toString() {
-    final buff = StringBuffer();
-    for (final map in mappings.values) {
-      buff.write(map.toString());
-    }
-    return buff.toString();
-  }
-
-  @override
   bool containsMapping(
     final String url,
   ) =>
@@ -211,7 +191,7 @@ class SourcemapSingleImpl implements SourcemapSingle {
   @override
   final List<String> names;
   @override
-  final List<SourcemapFile?> files;
+  final List<String?> files;
   @override
   final List<SourcemapTargetLineEntry> lines;
   @override
@@ -261,18 +241,24 @@ class SourcemapSingleImpl implements SourcemapSingle {
 
 class SourcemapSpanImpl implements SourcemapSpan {
   @override
+  final Uri? sourceUrl;
+  @override
   final SourcemapLocation end;
   @override
   final SourcemapLocation start;
+  @override
+  final String? file;
   @override
   final String text;
   @override
   final bool is_identifier;
 
   const SourcemapSpanImpl({
+    required final this.sourceUrl,
     required final this.start,
     required final this.end,
     required final this.text,
+    required final this.file,
     required final this.is_identifier,
   });
 }
@@ -317,28 +303,22 @@ class SourcemapLocationImpl implements SourcemapLocation {
   final int line;
   @override
   final int column;
-  @override
-  final Uri? sourceUrl;
-  @override
-  final SourcemapFile? file;
 
   const SourcemapLocationImpl({
     required final this.offset,
     required final this.line,
     required final this.column,
-    required final this.sourceUrl,
-    required final this.file,
   });
 }
 
 class SourcemapFileImpl implements SourcemapFile {
   @override
-  final String content;
-  @override
   final Uri? url;
+  @override
+  final String? file;
 
   const SourcemapFileImpl({
-    required final this.content,
     required final this.url,
+    required final this.file,
   });
 }

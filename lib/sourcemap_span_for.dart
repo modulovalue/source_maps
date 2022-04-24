@@ -9,7 +9,7 @@ SourcemapSpan? span_for_sourcemap({
   required final Sourcemap sourcemap,
   required final int line,
   required final int column,
-  required final Map<String, SourcemapFile>? files,
+  required final Map<String, SourcemapSpanFile>? files,
   required final String? uri,
   required final SourcemapTextbuffer textbuffer,
 }) {
@@ -84,10 +84,10 @@ SourcemapSpan? span_for_sourcemap({
         offset: line * 1000000 + column,
         line: line,
         column: column,
-        sourceUrl: Uri.parse(uri),
-        file: null,
       );
       return SourcemapSpanImpl(
+        file: null,
+        sourceUrl: Uri.parse(uri),
         start: location,
         end: location,
         text: '',
@@ -115,7 +115,7 @@ SourcemapSpan? span_for_sourcemap({
           final file = files?[url];
           if (file != null) {
             final start = textbuffer.calculate_index(
-              file: file,
+              file: file.content,
               line: found_entry.source_line!,
               column: found_entry.source_column ?? 0,
             );
@@ -123,26 +123,24 @@ SourcemapSpan? span_for_sourcemap({
               final text = sourcemap.names[sourceNameId];
               final end = start + text.length;
               return SourcemapSpanImpl(
+                file: file.content,
+                sourceUrl: file.url,
                 start: textbuffer.calculate_location(
-                  file: file,
+                  file: file.content,
                   offset: start,
                   make: (final c, final r) => SourcemapLocationImpl(
                     offset: start,
                     column: c,
                     line: r,
-                    sourceUrl: file.url,
-                    file: file,
                   ),
                 ),
                 end: textbuffer.calculate_location(
-                  file: file,
+                  file: file.content,
                   offset: end,
                   make: (final c, final r) => SourcemapLocationImpl(
                     offset: end,
                     column: c,
                     line: r,
-                    sourceUrl: file.url,
-                    file: file,
                   ),
                 ),
                 text: text,
@@ -150,22 +148,20 @@ SourcemapSpan? span_for_sourcemap({
               );
             } else {
               return textbuffer.calculate_location(
-                file: file,
+                file: file.content,
                 offset: start,
                 make: (final c, final l) => SourcemapSpanImpl(
+                  file: file.content,
+                  sourceUrl: file.url,
                   start: SourcemapLocationImpl(
                     offset: start,
                     column: c,
                     line: l,
-                    sourceUrl: file.url,
-                    file: file,
                   ),
                   end: SourcemapLocationImpl(
                     offset: start,
                     column: c,
                     line: l,
-                    sourceUrl: file.url,
-                    file: file,
                   ),
                   text: "",
                   is_identifier: false,
@@ -173,30 +169,31 @@ SourcemapSpan? span_for_sourcemap({
               );
             }
           } else {
+            final _url = sourcemap.map_url?.resolve(url) ?? Uri.tryParse(url);
             final start = SourcemapLocationImpl(
               offset: 0,
-              sourceUrl: sourcemap.map_url?.resolve(url) ?? Uri.tryParse(url),
               line: found_entry.source_line ?? 0,
               column: found_entry.source_column ?? 0,
-              file: null,
             );
             // Offset and other context is not available.
             if (sourceNameId != null) {
               final text = sourcemap.names[sourceNameId];
               return SourcemapSpanImpl(
+                file: null,
+                sourceUrl: _url,
                 start: start,
                 end: SourcemapLocationImpl(
                   offset: start.offset + text.length,
-                  sourceUrl: start.sourceUrl,
                   line: start.line,
                   column: start.column + text.length,
-                  file: null,
                 ),
                 text: text,
                 is_identifier: true,
               );
             } else {
               return SourcemapSpanImpl(
+                file: null,
+                sourceUrl: _url,
                 start: start,
                 end: start,
                 text: '',
@@ -208,4 +205,15 @@ SourcemapSpan? span_for_sourcemap({
       }
     },
   );
+}
+
+class SourcemapSpanFile {
+  final String content;
+
+  final Uri? url;
+
+  const SourcemapSpanFile({
+    required final this.content,
+    required final this.url,
+  });
 }

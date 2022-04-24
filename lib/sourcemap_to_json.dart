@@ -91,7 +91,7 @@ Map<String, Object> sourcemap_single_to_json({
     'file': sourcemap.target_url,
     if (include_source_contents)
       'sourcesContent': [
-        for (final file in sourcemap.files) file?.content,
+        for (final file in sourcemap.files) file,
       ],
     ...sourcemap.extensions,
   };

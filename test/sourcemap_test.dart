@@ -33,15 +33,18 @@ void main() {
       final map = sourcemap_single_to_json(
         include_source_contents: false,
         sourcemap: (SourcemapBuilderImpl()
-              ..add_span(source: inputVar1, target: outputVar1)
-              ..add_span(source: inputFunction, target: outputFunction)
-              ..add_span(source: inputVar2, target: outputVar2)
-              ..add_span(source: inputExpr, target: outputExpr))
+              ..add_span(url: inputVar1.sourceUrl, source: inputVar1, target: outputVar1)
+              ..add_span(url: inputFunction.sourceUrl, source: inputFunction, target: outputFunction)
+              ..add_span(url: inputVar2.sourceUrl, source: inputVar2, target: outputVar2)
+              ..add_span(url: inputExpr.sourceUrl, source: inputExpr, target: outputExpr))
             .build(
           file_url: output.url.toString(),
         ),
       );
-      final mapping = sourcemap_from_json(map);
+      final mapping = sourcemap_from_json(
+        json: map,
+        source_map_file_url: null,
+      );
       check(outputVar1, mapping, inputVar1, false, textbuffer);
       check(outputVar2, mapping, inputVar2, false, textbuffer);
       check(outputFunction, mapping, inputFunction, false, textbuffer);
@@ -51,15 +54,23 @@ void main() {
       final map = sourcemap_single_to_json(
         include_source_contents: false,
         sourcemap: (SourcemapBuilderImpl()
-              ..add_span(source: inputVar1NoSymbol, target: outputVar1NoSymbol)
-              ..add_span(source: inputFunctionNoSymbol, target: outputFunctionNoSymbol)
-              ..add_span(source: inputVar2NoSymbol, target: outputVar2NoSymbol)
-              ..add_span(source: inputExpr, target: outputExpr))
+              ..add_span(
+                  url: inputVar1NoSymbol.sourceUrl, source: inputVar1NoSymbol, target: outputVar1NoSymbol)
+              ..add_span(
+                  url: inputFunctionNoSymbol.sourceUrl,
+                  source: inputFunctionNoSymbol,
+                  target: outputFunctionNoSymbol)
+              ..add_span(
+                  url: inputVar2NoSymbol.sourceUrl, source: inputVar2NoSymbol, target: outputVar2NoSymbol)
+              ..add_span(url: inputExpr.sourceUrl, source: inputExpr, target: outputExpr))
             .build(
           file_url: output.url.toString(),
         ),
       );
-      final mapping = sourcemap_from_json(map);
+      final mapping = sourcemap_from_json(
+        json: map,
+        source_map_file_url: null,
+      );
       check(outputVar1NoSymbol, mapping, inputVar1NoSymbol, false, textbuffer);
       check(outputVar2NoSymbol, mapping, inputVar2NoSymbol, false, textbuffer);
       check(outputFunctionNoSymbol, mapping, inputFunctionNoSymbol, false, textbuffer);
@@ -69,19 +80,22 @@ void main() {
       final map = sourcemap_single_to_json(
         include_source_contents: false,
         sourcemap: (SourcemapBuilderImpl()
-              ..add_span(source: inputVar1, target: outputVar1)
-              ..add_span(source: inputVar1, target: outputVar1)
-              ..add_span(source: inputFunction, target: outputFunction)
-              ..add_span(source: inputFunction, target: outputFunction)
-              ..add_span(source: inputVar2, target: outputVar2)
-              ..add_span(source: inputVar2, target: outputVar2)
-              ..add_span(source: inputExpr, target: outputExpr)
-              ..add_span(source: inputExpr, target: outputExpr))
+              ..add_span(url: inputVar1.sourceUrl, source: inputVar1, target: outputVar1)
+              ..add_span(url: inputVar1.sourceUrl, source: inputVar1, target: outputVar1)
+              ..add_span(url: inputFunction.sourceUrl, source: inputFunction, target: outputFunction)
+              ..add_span(url: inputFunction.sourceUrl, source: inputFunction, target: outputFunction)
+              ..add_span(url: inputVar2.sourceUrl, source: inputVar2, target: outputVar2)
+              ..add_span(url: inputVar2.sourceUrl, source: inputVar2, target: outputVar2)
+              ..add_span(url: inputExpr.sourceUrl, source: inputExpr, target: outputExpr)
+              ..add_span(url: inputExpr.sourceUrl, source: inputExpr, target: outputExpr))
             .build(
           file_url: output.url.toString(),
         ),
       );
-      final mapping = sourcemap_from_json(map);
+      final mapping = sourcemap_from_json(
+        json: map,
+        source_map_file_url: null,
+      );
       check(outputVar1, mapping, inputVar1, false, textbuffer);
       check(outputVar2, mapping, inputVar2, false, textbuffer);
       check(outputFunction, mapping, inputFunction, false, textbuffer);
@@ -91,18 +105,31 @@ void main() {
       final map = sourcemap_single_to_json(
         include_source_contents: false,
         sourcemap: (SourcemapBuilderImpl()
-              ..add_span(source: inputVar1NoSymbol, target: outputVar1NoSymbol)
-              ..add_span(source: inputVar1NoSymbol, target: outputVar1NoSymbol)
-              ..add_span(source: inputFunctionNoSymbol, target: outputFunctionNoSymbol)
-              ..add_span(source: inputFunctionNoSymbol, target: outputFunctionNoSymbol)
-              ..add_span(source: inputVar2NoSymbol, target: outputVar2NoSymbol)
-              ..add_span(source: inputVar2NoSymbol, target: outputVar2NoSymbol)
-              ..add_span(source: inputExpr, target: outputExpr))
+              ..add_span(
+                  url: inputVar1NoSymbol.sourceUrl, source: inputVar1NoSymbol, target: outputVar1NoSymbol)
+              ..add_span(
+                  url: inputVar1NoSymbol.sourceUrl, source: inputVar1NoSymbol, target: outputVar1NoSymbol)
+              ..add_span(
+                  url: inputFunctionNoSymbol.sourceUrl,
+                  source: inputFunctionNoSymbol,
+                  target: outputFunctionNoSymbol)
+              ..add_span(
+                  url: inputFunctionNoSymbol.sourceUrl,
+                  source: inputFunctionNoSymbol,
+                  target: outputFunctionNoSymbol)
+              ..add_span(
+                  url: inputVar2NoSymbol.sourceUrl, source: inputVar2NoSymbol, target: outputVar2NoSymbol)
+              ..add_span(
+                  url: inputVar2NoSymbol.sourceUrl, source: inputVar2NoSymbol, target: outputVar2NoSymbol)
+              ..add_span(url: inputExpr.sourceUrl, source: inputExpr, target: outputExpr))
             .build(
           file_url: output.url.toString(),
         ),
       );
-      final mapping = sourcemap_from_json(map);
+      final mapping = sourcemap_from_json(
+        json: map,
+        source_map_file_url: null,
+      );
       check(outputVar1NoSymbol, mapping, inputVar1NoSymbol, false, textbuffer);
       check(outputVar2NoSymbol, mapping, inputVar2NoSymbol, false, textbuffer);
       check(outputFunctionNoSymbol, mapping, inputFunctionNoSymbol, false, textbuffer);
@@ -113,17 +140,18 @@ void main() {
         sourcemap_single_to_json(
           include_source_contents: false,
           sourcemap: (SourcemapBuilderImpl()
-                ..add_span(source: inputVar1, target: outputVar1)
-                ..add_span(source: inputFunction, target: outputFunction)
-                ..add_span(source: inputVar2, target: outputVar2)
-                ..add_span(source: inputExpr, target: outputExpr))
+                ..add_span(url: inputVar1.sourceUrl, source: inputVar1, target: outputVar1)
+                ..add_span(url: inputFunction.sourceUrl, source: inputFunction, target: outputFunction)
+                ..add_span(url: inputVar2.sourceUrl, source: inputVar2, target: outputVar2)
+                ..add_span(url: inputExpr.sourceUrl, source: inputExpr, target: outputExpr))
               .build(
             file_url: output.url.toString(),
           ),
         ),
       );
       final mapping = sourcemap_from_json(
-        jsonDecode(json),
+        json: jsonDecode(json),
+        source_map_file_url: null,
       );
       check(outputVar1, mapping, inputVar1, true, textbuffer);
       check(outputVar2, mapping, inputVar2, true, textbuffer);
@@ -201,7 +229,10 @@ void main() {
     ];
 
     test('parse', () {
-      final mapping = sourcemap_from_json(expectedMap);
+      final mapping = sourcemap_from_json(
+        json: expectedMap,
+        source_map_file_url: null,
+      );
       check(outputVar1, mapping, inputVar1, false, textbuffer);
       check(outputVar2, mapping, inputVar2, false, textbuffer);
       check(outputFunction, mapping, inputFunction, false, textbuffer);
@@ -209,7 +240,8 @@ void main() {
     });
     test('parse + json', () {
       final mapping = sourcemap_from_json(
-        jsonDecode(jsonEncode(expectedMap)),
+        json: jsonDecode(jsonEncode(expectedMap)),
+        source_map_file_url: null,
       );
       check(outputVar1, mapping, inputVar1, false, textbuffer);
       check(outputVar2, mapping, inputVar2, false, textbuffer);
@@ -217,14 +249,20 @@ void main() {
       check(outputExpr, mapping, inputExpr, false, textbuffer);
     });
     test('parse with file', () {
-      final mapping = sourcemap_from_json(expectedMap);
+      final mapping = sourcemap_from_json(
+        json: expectedMap,
+        source_map_file_url: null,
+      );
       check(outputVar1, mapping, inputVar1, true, textbuffer);
       check(outputVar2, mapping, inputVar2, true, textbuffer);
       check(outputFunction, mapping, inputFunction, true, textbuffer);
       check(outputExpr, mapping, inputExpr, true, textbuffer);
     });
     test('parse with no source location', () {
-      final map = sourcemap_from_json(jsonDecode(jsonEncode(_mapWithNoSourceLocation))) as SourcemapSingle;
+      final map = sourcemap_from_json(
+        json: jsonDecode(jsonEncode(_mapWithNoSourceLocation)),
+        source_map_file_url: null,
+      ) as SourcemapSingle;
       expect(map.lines.length, 1);
       expect(map.lines.first.entries.length, 1);
       final entry = map.lines.first.entries.first;
@@ -235,7 +273,10 @@ void main() {
       expect(entry.source_name_id, null);
     });
     test('parse with source location and no name', () {
-      final map = sourcemap_from_json(jsonDecode(jsonEncode(_mapWithSourceLocation))) as SourcemapSingle;
+      final map = sourcemap_from_json(
+        json: jsonDecode(jsonEncode(_mapWithSourceLocation)),
+        source_map_file_url: null,
+      ) as SourcemapSingle;
       expect(map.lines.length, 1);
       expect(map.lines.first.entries.length, 1);
       final entry = map.lines.first.entries.first;
@@ -246,8 +287,14 @@ void main() {
       expect(entry.source_name_id, null);
     });
     test('parse with source location and missing names entry', () {
-      final map = sourcemap_from_json(jsonDecode(jsonEncode(_mapWithSourceLocationAndMissingNames)))
-          as SourcemapSingle;
+      final map = sourcemap_from_json(
+        json: jsonDecode(
+          jsonEncode(
+            _mapWithSourceLocationAndMissingNames,
+          ),
+        ),
+        source_map_file_url: null,
+      ) as SourcemapSingle;
       expect(map.lines.length, 1);
       expect(map.lines.first.entries.length, 1);
       final entry = map.lines.first.entries.first;
@@ -258,8 +305,12 @@ void main() {
       expect(entry.source_name_id, null);
     });
     test('parse with source location and name', () {
-      final map =
-          sourcemap_from_json(jsonDecode(jsonEncode(_mapWithSourceLocationAndName))) as SourcemapSingle;
+      final map = sourcemap_from_json(
+        json: jsonDecode(
+          jsonEncode(_mapWithSourceLocationAndName),
+        ),
+        source_map_file_url: null,
+      ) as SourcemapSingle;
       expect(map.lines.length, 1);
       expect(map.lines.first.entries.length, 1);
       final entry = map.lines.first.entries.first;
@@ -272,7 +323,10 @@ void main() {
     test('parse with source root', () {
       final inputMap = Map<String, dynamic>.from(_mapWithSourceLocation);
       inputMap['sourceRoot'] = '/pkg/';
-      final mapping = sourcemap_from_json(inputMap) as SourcemapSingle;
+      final mapping = sourcemap_from_json(
+        json: inputMap,
+        source_map_file_url: null,
+      ) as SourcemapSingle;
       expect(
         span_for_sourcemap(
           textbuffer: textbuffer,
@@ -281,7 +335,7 @@ void main() {
           column: 0,
           uri: null,
           files: null,
-        )?.start.sourceUrl,
+        )?.sourceUrl,
         Uri.parse('/pkg/input.dart'),
       );
       expect(
@@ -292,7 +346,7 @@ void main() {
           column: 0,
           uri: 'ignored.dart',
           files: null,
-        )?.start.sourceUrl,
+        )?.sourceUrl,
         Uri.parse('/pkg/input.dart'),
       );
       const newSourceRoot = '/new/';
@@ -309,7 +363,7 @@ void main() {
       final inputMap = Map<String, dynamic>.from(_mapWithSourceLocation);
       inputMap['sourceRoot'] = 'pkg/';
       final mapping = sourcemap_from_json(
-        inputMap,
+        json: inputMap,
         source_map_file_url: Uri.tryParse('file:///path/to/map'),
       );
       expect(
@@ -320,13 +374,13 @@ void main() {
           column: 0,
           uri: null,
           files: null,
-        )?.start.sourceUrl,
+        )?.sourceUrl,
         Uri.parse('file:///path/to/pkg/input.dart'),
       );
     });
     group('parse with bundle', () {
       final mapping = sourcemap_from_json(
-        _sourceMapBundle,
+        json: _sourceMapBundle,
         source_map_file_url: Uri.tryParse('file:///path/to/map'),
       );
       test('simple', () {
@@ -338,7 +392,7 @@ void main() {
             column: 0,
             uri: Uri.file('/path/to/output.dart').toString(),
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input1.dart'),
         );
         expect(
@@ -349,7 +403,7 @@ void main() {
             column: 0,
             uri: Uri.file('/path/to/output2.dart').toString(),
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input2.dart'),
         );
         expect(
@@ -360,7 +414,7 @@ void main() {
             column: 0,
             uri: Uri.file('/path/to/3/output.dart').toString(),
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input3.dart'),
         );
         expect(
@@ -371,7 +425,7 @@ void main() {
             column: 0,
             uri: 'file:///path/to/output.dart',
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input1.dart'),
         );
         expect(
@@ -382,7 +436,7 @@ void main() {
             column: 0,
             uri: 'file:///path/to/output2.dart',
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input2.dart'),
         );
         expect(
@@ -393,7 +447,7 @@ void main() {
             column: 0,
             uri: 'file:///path/to/3/output.dart',
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input3.dart'),
         );
       });
@@ -406,7 +460,7 @@ void main() {
             column: 0,
             uri: Uri.parse('package:1/output.dart').toString(),
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input1.dart'),
         );
         expect(
@@ -417,7 +471,7 @@ void main() {
             column: 0,
             uri: Uri.parse('package:2/output2.dart').toString(),
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input2.dart'),
         );
         expect(
@@ -428,7 +482,7 @@ void main() {
             column: 0,
             uri: Uri.parse('package:3/output.dart').toString(),
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input3.dart'),
         );
         expect(
@@ -439,7 +493,7 @@ void main() {
             column: 0,
             uri: 'package:1/output.dart',
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input1.dart'),
         );
         expect(
@@ -450,7 +504,7 @@ void main() {
             column: 0,
             uri: 'package:2/output2.dart',
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input2.dart'),
         );
         expect(
@@ -461,7 +515,7 @@ void main() {
             column: 0,
             uri: 'package:3/output.dart',
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input3.dart'),
         );
       });
@@ -475,7 +529,7 @@ void main() {
           files: null,
         )!;
         expect(
-          span.start.sourceUrl,
+          span.sourceUrl,
           Uri.parse('unmapped_output.dart'),
         );
         expect(
@@ -495,7 +549,7 @@ void main() {
           files: null,
         )!;
         expect(
-          span.start.sourceUrl,
+          span.sourceUrl,
           Uri.parse('unmapped_output.dart'),
         );
         expect(
@@ -529,7 +583,7 @@ void main() {
             column: 0,
             uri: 'output.dart',
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input1.dart'),
         );
         expect(
@@ -540,7 +594,7 @@ void main() {
             column: 0,
             uri: 'output2.dart',
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input2.dart'),
         );
         expect(
@@ -551,13 +605,13 @@ void main() {
             column: 0,
             uri: '3/output.dart',
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input3.dart'),
         );
       });
       test('parseExtended', () {
         final mapping = sourcemap_from_json(
-          _sourceMapBundle,
+          json: _sourceMapBundle,
           source_map_file_url: Uri.tryParse('file:///path/to/map'),
         );
         expect(
@@ -568,7 +622,7 @@ void main() {
             column: 0,
             uri: 'output.dart',
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input1.dart'),
         );
         expect(
@@ -579,7 +633,7 @@ void main() {
             column: 0,
             uri: 'output2.dart',
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input2.dart'),
         );
         expect(
@@ -590,7 +644,7 @@ void main() {
             column: 0,
             uri: '3/output.dart',
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input3.dart'),
         );
       });
@@ -598,7 +652,7 @@ void main() {
         final mapping = SourcemapCollectionImpl();
         mapping.addMapping(
           sourcemap_from_json(
-            _mapWithSourceLocationAndName1,
+            json: _mapWithSourceLocationAndName1,
             source_map_file_url: Uri.tryParse('file:///path/to/map'),
           ) as SourcemapSingle,
         );
@@ -610,13 +664,13 @@ void main() {
             column: 0,
             uri: 'output.dart',
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input1.dart'),
         );
         expect(mapping.containsMapping('output2.dart'), isFalse);
         mapping.addMapping(
           sourcemap_from_json(
-            _mapWithSourceLocationAndName2,
+            json: _mapWithSourceLocationAndName2,
             source_map_file_url: Uri.tryParse('file:///path/to/map'),
           ) as SourcemapSingle,
         );
@@ -629,13 +683,13 @@ void main() {
             column: 0,
             uri: 'output2.dart',
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input2.dart'),
         );
         expect(mapping.containsMapping('3/output.dart'), isFalse);
         mapping.addMapping(
           sourcemap_from_json(
-            _mapWithSourceLocationAndName3,
+            json: _mapWithSourceLocationAndName3,
             source_map_file_url: Uri.tryParse('file:///path/to/map'),
           ) as SourcemapSingle,
         );
@@ -648,7 +702,7 @@ void main() {
             column: 0,
             uri: '3/output.dart',
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input3.dart'),
         );
       });
@@ -664,7 +718,7 @@ void main() {
             column: 0,
             uri: Uri.parse('http://localhost/output.dart').toString(),
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input1.dart'),
         );
         expect(
@@ -675,7 +729,7 @@ void main() {
             column: 0,
             uri: Uri.parse('http://localhost/output2.dart').toString(),
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input2.dart'),
         );
         expect(
@@ -686,7 +740,7 @@ void main() {
             column: 0,
             uri: Uri.parse('http://localhost/3/output.dart').toString(),
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input3.dart'),
         );
         expect(
@@ -697,7 +751,7 @@ void main() {
             column: 0,
             uri: 'http://localhost/output.dart',
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input1.dart'),
         );
         expect(
@@ -708,7 +762,7 @@ void main() {
             column: 0,
             uri: 'http://localhost/output2.dart',
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input2.dart'),
         );
         expect(
@@ -719,7 +773,7 @@ void main() {
             column: 0,
             uri: 'http://localhost/3/output.dart',
             files: null,
-          )?.start.sourceUrl,
+          )?.sourceUrl,
           Uri.parse('file:///path/to/pkg/input3.dart'),
         );
       });
@@ -731,7 +785,10 @@ void main() {
         _mapWithSourceLocation,
         _mapWithSourceLocationAndName
       ]) {
-        SourcemapSingle mapping = sourcemap_from_json(expected) as SourcemapSingle;
+        SourcemapSingle mapping = sourcemap_from_json(
+          json: expected,
+          source_map_file_url: null,
+        ) as SourcemapSingle;
         expect(
           sourcemap_single_to_json(
             include_source_contents: false,
@@ -739,7 +796,10 @@ void main() {
           ),
           equals(expected),
         );
-        mapping = sourcemap_from_json(expected) as SourcemapSingle;
+        mapping = sourcemap_from_json(
+          json: expected,
+          source_map_file_url: null,
+        ) as SourcemapSingle;
         expect(
           sourcemap_single_to_json(
             include_source_contents: false,
@@ -748,7 +808,10 @@ void main() {
           equals(expected),
         );
       }
-      final mapping = sourcemap_from_json(_sourceMapBundle) as SourcemapCollection;
+      final mapping = sourcemap_from_json(
+        json: _sourceMapBundle,
+        source_map_file_url: null,
+      ) as SourcemapCollection;
       expect(
         sourcemap_bundle_to_json(
           sourcemap: mapping,
@@ -761,7 +824,10 @@ void main() {
       final map = Map<String, dynamic>.from(expectedMap);
       map['x_foo'] = 'a';
       map['x_bar'] = [3];
-      final mapping = sourcemap_from_json(map) as SourcemapSingle;
+      final mapping = sourcemap_from_json(
+        json: map,
+        source_map_file_url: null,
+      ) as SourcemapSingle;
       expect(
         sourcemap_single_to_json(
           include_source_contents: false,
@@ -783,15 +849,15 @@ void main() {
         test('are null for non-FileLocations', () {
           final builder = SourcemapBuilderImpl();
           builder.add_location(
-            const SourcemapLocationImpl(
+            file: null,
+            url: null,
+            source: const SourcemapLocationImpl(
               offset: 10,
               line: 1,
               column: 8,
-              file: null,
-              sourceUrl: null,
             ),
-            outputVar1.start,
-            null,
+            target: outputVar1.start,
+            identifier: null,
           );
           expect(
             builder.build(file_url: "some_url").files,
@@ -801,16 +867,18 @@ void main() {
         test("use a file location's file", () {
           final builder = SourcemapBuilderImpl();
           builder.add_location(
-            inputVar1.start,
-            outputVar1.start,
-            null,
+            file: inputVar1.file,
+            url: inputVar1.sourceUrl,
+            source: inputVar1.start,
+            target: outputVar1.start,
+            identifier: null,
           );
           expect(
-            builder.build(file_url: "some_url").files.single?.url,
-            input.url,
+            builder.build(file_url: "some_url").urls.single,
+            input.url.toString(),
           );
           expect(
-            builder.build(file_url: "some_url").files.single?.content,
+            builder.build(file_url: "some_url").files.single,
             input.content,
           );
         });
@@ -818,7 +886,10 @@ void main() {
       group('from parse()', () {
         group('are null', () {
           test('with no sourcesContent field', () {
-            final mapping = sourcemap_from_json(expectedMap) as SourcemapSingle;
+            final mapping = sourcemap_from_json(
+              json: expectedMap,
+              source_map_file_url: null,
+            ) as SourcemapSingle;
             expect(
               mapping.files,
               equals([null]),
@@ -827,7 +898,10 @@ void main() {
           test('with null sourcesContent values', () {
             final map = Map<String, dynamic>.from(expectedMap);
             map['sourcesContent'] = [null];
-            final mapping = sourcemap_from_json(map) as SourcemapSingle;
+            final mapping = sourcemap_from_json(
+              json: map,
+              source_map_file_url: null,
+            ) as SourcemapSingle;
             expect(
               mapping.files,
               equals([null]),
@@ -836,7 +910,10 @@ void main() {
           test('with a too-short sourcesContent', () {
             final map = Map<String, dynamic>.from(expectedMap);
             map['sourcesContent'] = <dynamic>[];
-            final mapping = sourcemap_from_json(map) as SourcemapSingle;
+            final mapping = sourcemap_from_json(
+              json: map,
+              source_map_file_url: null,
+            ) as SourcemapSingle;
             expect(
               mapping.files,
               equals([null]),
@@ -846,15 +923,17 @@ void main() {
         test('are parsed from sourcesContent', () {
           final map = Map<String, dynamic>.from(expectedMap);
           map['sourcesContent'] = ['hello, world!'];
-          final mapping = sourcemap_from_json(map) as SourcemapSingle;
-          final file = mapping.files[0]!;
+          final mapping = sourcemap_from_json(
+            json: map,
+            source_map_file_url: null,
+          ) as SourcemapSingle;
           expect(
-            file.url,
-            equals(Uri.parse('input.dart')),
+            mapping.urls[0],
+            'input.dart',
           );
           expect(
-            file.content,
-            equals('hello, world!'),
+            mapping.files[0],
+            'hello, world!',
           );
         });
       });
@@ -863,10 +942,10 @@ void main() {
   group("builder", () {
     test('builder - with span', () {
       final builder = SourcemapBuilderImpl();
-      builder.add_span(source: inputVar1, target: outputVar1);
-      builder.add_span(source: inputFunction, target: outputFunction);
-      builder.add_span(source: inputVar2, target: outputVar2);
-      builder.add_span(source: inputExpr, target: outputExpr);
+      builder.add_span(url: inputVar1.sourceUrl, source: inputVar1, target: outputVar1);
+      builder.add_span(url: inputFunction.sourceUrl, source: inputFunction, target: outputFunction);
+      builder.add_span(url: inputVar2.sourceUrl, source: inputVar2, target: outputVar2);
+      builder.add_span(url: inputExpr.sourceUrl, source: inputExpr, target: outputExpr);
       final map = sourcemap_single_to_json(
         include_source_contents: false,
         sourcemap: builder.build(
@@ -883,10 +962,34 @@ void main() {
         sourcemap_single_to_json(
           include_source_contents: false,
           sourcemap: (SourcemapBuilderImpl()
-                ..add_location(inputVar1.start, outputVar1.start, 'longVar1')
-                ..add_location(inputFunction.start, outputFunction.start, 'longName')
-                ..add_location(inputVar2.start, outputVar2.start, 'longVar2')
-                ..add_location(inputExpr.start, outputExpr.start, null))
+                ..add_location(
+                  file: inputVar1.file,
+                  url: inputVar1.sourceUrl,
+                  source: inputVar1.start,
+                  target: outputVar1.start,
+                  identifier: 'longVar1',
+                )
+                ..add_location(
+                  file: inputFunction.file,
+                  url: inputFunction.sourceUrl,
+                  source: inputFunction.start,
+                  target: outputFunction.start,
+                  identifier: 'longName',
+                )
+                ..add_location(
+                  file: inputVar2.file,
+                  url: inputVar2.sourceUrl,
+                  source: inputVar2.start,
+                  target: outputVar2.start,
+                  identifier: 'longVar2',
+                )
+                ..add_location(
+                  file: inputExpr.file,
+                  url: inputExpr.sourceUrl,
+                  source: inputExpr.start,
+                  target: outputExpr.start,
+                  identifier: null,
+                ))
               .build(
             file_url: output.url.toString(),
           ),
@@ -984,7 +1087,7 @@ int longName(int longVar2) {
   return longVar1 + longVar2;
 }
 ''';
-final input = SourcemapFileImpl(
+final input = SourcemapSpanFile(
   content: inputContent,
   url: Uri.parse('input.dart'),
 );
@@ -996,26 +1099,24 @@ SourcemapSpan _ispan(
   final bool isIdentifier = false,
 ]) {
   return SourcemapSpanImpl(
+    file: input.content,
+    sourceUrl: input.url,
     start: const SourcemapTextbufferSourcespanImpl().calculate_location(
-      file: input,
+      file: input.content,
       offset: start,
       make: (final c, final r) => SourcemapLocationImpl(
         offset: start,
         column: c,
         line: r,
-        sourceUrl: input.url,
-        file: input,
       ),
     ),
     end: const SourcemapTextbufferSourcespanImpl().calculate_location(
-      file: input,
+      file: input.content,
       offset: end,
       make: (final c, final r) => SourcemapLocationImpl(
         offset: end,
         column: c,
         line: r,
-        sourceUrl: input.url,
-        file: input,
       ),
     ),
     text: input.content.substring(start, end),
@@ -1037,7 +1138,7 @@ var x = 3;
 f(y) => x + y;
 ''';
 
-final output = SourcemapFileImpl(
+final output = SourcemapSpanFile(
   content: outputContent,
   url: Uri.parse('output.dart'),
 );
@@ -1049,26 +1150,24 @@ SourcemapSpan _ospan(
   final bool isIdentifier = false,
 ]) {
   return SourcemapSpanImpl(
+    file: output.content,
+    sourceUrl: output.url,
     start: const SourcemapTextbufferSourcespanImpl().calculate_location(
-      file: output,
+      file: output.content,
       offset: start,
       make: (final c, final r) => SourcemapLocationImpl(
         offset: start,
         line: r,
-        sourceUrl: output.url,
-        file: output,
         column: c,
       ),
     ),
     end: const SourcemapTextbufferSourcespanImpl().calculate_location(
-      file: output,
+      file: output.content,
       offset: end,
       make: (final c, final r) => SourcemapLocationImpl(
         offset: end,
         column: c,
         line: r,
-        sourceUrl: output.url,
-        file: output,
       ),
     ),
     text: output.content.substring(start, end),
@@ -1134,7 +1233,7 @@ void check(
     line: loc.line,
     column: loc.column,
     files: files,
-    uri: loc.sourceUrl?.toString(),
+    uri: outputSpan.sourceUrl?.toString(),
   )!;
   // Both mapping APIs are equivalent.
   expect(span.start.offset, span2.start.offset);
@@ -1146,7 +1245,7 @@ void check(
   // Mapping matches our input location (modulo using real offsets)
   expect(span.start.line, inputSpan.start.line);
   expect(span.start.column, inputSpan.start.column);
-  expect(span.start.sourceUrl, inputSpan.start.sourceUrl);
+  expect(span.sourceUrl, inputSpan.sourceUrl);
   expect(span.start.offset, realOffsets ? inputSpan.start.offset : 0);
   // Mapping includes the identifier, if any
   if (inputSpan.is_identifier) {

@@ -8,13 +8,12 @@ class SourcemapTextbufferSourcespanImpl implements SourcemapTextbuffer {
   // TODO these operate on lines and lines are available where this is used used. Use those lines.
   @override
   int calculate_index({
-    required final SourcemapFile file,
+    required final String file,
     required final int line,
     required final int column,
   }) {
     return SourceFile.fromString(
-      file.content,
-      url: file.url,
+      file,
     ).getOffset(
       line,
       column,
@@ -24,13 +23,12 @@ class SourcemapTextbufferSourcespanImpl implements SourcemapTextbuffer {
   // TODO these operate on lines and lines are available where this is used used. Use those lines.
   @override
   R calculate_location<R>({
-    required final SourcemapFile file,
+    required final String file,
     required final int offset,
     required final R Function(int column, int line) make,
   }) {
     final f = SourceFile.fromString(
-      file.content,
-      url: file.url,
+      file,
     ).location(
       offset,
     );
