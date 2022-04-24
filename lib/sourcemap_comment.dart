@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'constants.dart';
+
 /// Attempts to extract a sourcemap comment from the given lines.
 ///
 /// It is assumed that the sourcemap comment is on the last line
@@ -31,10 +33,9 @@ SourcemapComment parse_sourcemap_comment({
   } else {
     final lines = LineSplitter.split(line);
     final sourcemap_coment_line = lines.first;
-    const indicator = "//# sourceMappingURL=";
-    if (sourcemap_coment_line.startsWith(indicator)) {
+    if (sourcemap_coment_line.startsWith(sourcemap_comment_indicator)) {
       final data_part = sourcemap_coment_line.substring(
-        indicator.length,
+        sourcemap_comment_indicator.length,
       );
       final uri = Uri.tryParse(data_part);
       if (uri == null) {
@@ -56,7 +57,7 @@ SourcemapComment parse_sourcemap_comment({
       }
     } else {
       return const SourcemapCommentInvalidImpl(
-        reason: "The given line does not start with " + indicator,
+        reason: "The given line does not start with " + sourcemap_comment_indicator,
       );
     }
   }

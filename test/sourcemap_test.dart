@@ -6,6 +6,7 @@ import 'package:source_maps2/source_span_textbuffer.dart';
 import 'package:source_maps2/sourcemap.dart';
 import 'package:source_maps2/sourcemap_builder.dart';
 import 'package:source_maps2/sourcemap_comment.dart';
+import 'package:source_maps2/sourcemap_comment_builder.dart';
 import 'package:source_maps2/sourcemap_span_for.dart';
 import 'package:source_maps2/sourcemap_to_json.dart';
 import 'package:source_maps2/vlq.dart';
@@ -14,6 +15,14 @@ import 'package:test/test.dart';
 void main() {
   const textbuffer = SourcemapTextbufferSourcespanImpl();
   group("sourcemap comment", () {
+    test("comment builder relative", () {
+      final comment = build_sourcemap_comment_path(path: "my/path");
+      expect(comment, "//# sourceMappingURL=my/path");
+    });
+    test("comment builder relative", () {
+      final comment = build_sourcemap_comment_json_utf8_base64_inline(bytes: [0, 1, 2, 3, 4, 5, 6, 7, 8]);
+      expect(comment, "//# sourceMappingURL=data:application/json;charset=utf-8;base64,AAECAwQFBgcI");
+    });
     test("extract on second to last line", () {
       const file_with_sourcemap_comment = """
 function dartProgram() {
