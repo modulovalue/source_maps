@@ -5,6 +5,7 @@ import 'package:source_maps2/json_to_sourcemap.dart';
 import 'package:source_maps2/source_span_textbuffer.dart';
 import 'package:source_maps2/sourcemap.dart';
 import 'package:source_maps2/sourcemap_builder.dart';
+import 'package:source_maps2/sourcemap_comment.dart';
 import 'package:source_maps2/sourcemap_span_for.dart';
 import 'package:source_maps2/sourcemap_to_json.dart';
 import 'package:source_maps2/vlq.dart';
@@ -12,6 +13,116 @@ import 'package:test/test.dart';
 
 void main() {
   const textbuffer = SourcemapTextbufferSourcespanImpl();
+  group("sourcemap comment", () {
+    test("extract on second to last line", () {
+      const file_with_sourcemap_comment = """
+function dartProgram() {
+};
+
+//# sourceMappingURL=out.js.map
+""";
+      final sut = extract_sourcemap_comment(
+        lines: LineSplitter.split(file_with_sourcemap_comment).toList(),
+      );
+      expect(
+        sut.match(
+          inline: (final a) => null,
+          path: (final a) => a.path.toString(),
+          invalid: (final a) => null,
+        ),
+        "out.js.map",
+      );
+    });
+    test("extract on last line", () {
+      const file_with_sourcemap_comment = """
+function dartProgram() {
+};
+
+//# sourceMappingURL=out.js.map""";
+      final sut = extract_sourcemap_comment(
+        lines: LineSplitter.split(file_with_sourcemap_comment).toList(),
+      );
+      expect(
+        sut.match(
+          inline: (final a) => null,
+          path: (final a) => a.path.toString(),
+          invalid: (final a) => null,
+        ),
+        "out.js.map",
+      );
+    });
+    test("invalid a", () {
+      const comment = "//# abc";
+      final sut = parse_sourcemap_comment(
+        line: comment,
+      );
+      expect(
+        sut.match(
+          inline: (final a) => false,
+          path: (final a) => false,
+          invalid: (final a) => true,
+        ),
+        true,
+      );
+    });
+    test("invalid b", () {
+      const comment = "";
+      final sut = parse_sourcemap_comment(
+        line: comment,
+      );
+      expect(
+        sut.match(
+          inline: (final a) => false,
+          path: (final a) => false,
+          invalid: (final a) => true,
+        ),
+        true,
+      );
+    });
+    test("invalid c", () {
+      const comment = "//# sourceMappingURL=://////b";
+      final sut = parse_sourcemap_comment(
+        line: comment,
+      );
+      expect(
+        sut.match(
+          inline: (final a) => false,
+          path: (final a) => false,
+          invalid: (final a) => true,
+        ),
+        true,
+      );
+    });
+    test("valid relative", () {
+      const valid_sourcemap_comment_relative = "//# sourceMappingURL=out.js.map";
+      final result = parse_sourcemap_comment(
+        line: valid_sourcemap_comment_relative,
+      );
+      expect(
+        result.match(
+          inline: (final a) => false,
+          path: (final a) => a.path.toString(),
+          invalid: (final a) => false,
+        ),
+        "out.js.map",
+      );
+    });
+    test("valid base64", () {
+      const valid_sourcemap_comment_base64 =
+          "//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiIiwic291cmNlcyI6WyJmb28uanMiLCJiYXIuanMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7O1VBQ0c7Ozs7Ozs7Ozs7Ozs7O3NCQ0RIO3NCQUNBIn0=";
+      final result = parse_sourcemap_comment(
+        line: valid_sourcemap_comment_base64,
+      );
+      expect(
+        result.match(
+          inline: (final a) => a.data.contentText,
+          path: (final a) => false,
+          invalid: (final a) => false,
+        ),
+        "eyJ2ZXJzaW9uIjozLCJmaWxlIjoiIiwic291cmNlcyI6WyJmb28uanMiLCJiYXIuanMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7O1VBQ0c7Ozs7Ozs7Ozs7Ozs7O3NCQ0RIO3NCQUNBIn0=",
+      );
+    });
+  });
   group("end-to-end", () {
     test('end-to-end setup', () {
       expect(inputVar1.text, 'longVar1');

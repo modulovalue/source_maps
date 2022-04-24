@@ -170,7 +170,6 @@ class SourcemapBuilderImpl implements SourcemapBuilder {
         }(),
         () => urls.length,
       );
-      final s = source_entry.source;
       final file = source_entry.file;
       if (file != null) {
         files.putIfAbsent(

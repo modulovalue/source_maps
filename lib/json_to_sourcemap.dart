@@ -282,7 +282,17 @@ class _VlqTokenizer implements Iterator<String> {
     }
   }
 
-  bool get has_tokens => char < _length - 1 && _length > 0;
+  bool get has_tokens {
+    if (char < _length - 1) {
+      if (_length > 0) {
+        return true;
+      } else {
+        return true;
+      }
+    } else {
+      return false;
+    }
+  }
 
   _VlqTokenKind next_kind() {
     if (!has_tokens) {

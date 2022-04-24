@@ -5,7 +5,7 @@ import 'sourcemap.dart';
 class SourcemapTextbufferSourcespanImpl implements SourcemapTextbuffer {
   const SourcemapTextbufferSourcespanImpl();
 
-  // TODO these operate on lines and lines are available where this is used used. Use those lines.
+  // TODO these operate on lines and lines are available where this is used. Use those lines.
   @override
   int calculate_index({
     required final String file,
@@ -20,7 +20,7 @@ class SourcemapTextbufferSourcespanImpl implements SourcemapTextbuffer {
     );
   }
 
-  // TODO these operate on lines and lines are available where this is used used. Use those lines.
+  // TODO these operate on lines and lines are available where this is used. Use those lines.
   @override
   R calculate_location<R>({
     required final String file,
