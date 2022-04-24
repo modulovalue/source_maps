@@ -15,11 +15,11 @@ import 'package:test/test.dart';
 void main() {
   const textbuffer = SourcemapTextbufferSourcespanImpl();
   group("sourcemap comment", () {
-    test("comment builder relative", () {
+    test("comment builder path", () {
       final comment = build_sourcemap_comment_path(path: "my/path");
       expect(comment, "//# sourceMappingURL=my/path");
     });
-    test("comment builder relative", () {
+    test("comment builder inline", () {
       final comment = build_sourcemap_comment_json_utf8_base64_inline(bytes: [0, 1, 2, 3, 4, 5, 6, 7, 8]);
       expect(comment, "//# sourceMappingURL=data:application/json;charset=utf-8;base64,AAECAwQFBgcI");
     });
